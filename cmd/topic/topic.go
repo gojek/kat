@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 )
 
 var TopicCmd = &cobra.Command{
@@ -17,6 +18,7 @@ func init() {
 
 	TopicCmd.AddCommand(listCmd)
 	TopicCmd.AddCommand(describeCmd)
+	TopicCmd.AddCommand(increaseReplicationFactorCmd)
 
 }
 
@@ -30,12 +32,22 @@ func getReplicationFactor(cmd *cobra.Command) int {
 	return replicationFactor
 }
 
-func getTopicName(cmd *cobra.Command) string {
+func getTopicNames(cmd *cobra.Command) []string {
 	flags := cmd.Flags()
-	topicName, err := flags.GetString("topic-name")
+	topics, err := flags.GetString("topics")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	return topicName
+	return strings.Split(topics, ",")
+}
+
+func getNumOfBrokers(cmd *cobra.Command) int {
+	flags := cmd.Flags()
+	numOfBrokers, err := flags.GetInt("num-of-brokers")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return numOfBrokers
 }

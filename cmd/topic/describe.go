@@ -13,27 +13,27 @@ var describeCmd = &cobra.Command{
 }
 
 func init() {
-	describeCmd.PersistentFlags().StringP("topic-name", "t", "", "Topic name to describe")
+	describeCmd.PersistentFlags().StringP("topics", "t", "", "Comma separated list of topic names to describe")
+	describeCmd.MarkPersistentFlagRequired("topics")
 }
 
 func describe(cmd *cobra.Command, args []string) {
 	admin := utils.GetAdminClient(cmd)
-	topic := getTopicName(cmd)
+	topics := getTopicNames(cmd)
 
-	topicMetadata, err := admin.DescribeTopics([]string{topic})
+	metadata, err := admin.DescribeTopics(topics)
 	if err != nil {
 		fmt.Printf("Error while retrieving topic information %v\n", err)
 		return
 	}
 
-	for metadata := range topicMetadata {
-		data := *topicMetadata[metadata]
-		fmt.Printf("Name: %v,\nIsInternal: %v,\nPartitions:\n", data.Name, data.IsInternal)
+	for _, topicMetadata := range metadata {
+		fmt.Printf("Topic Name: %v,\nIsInternal: %v,\nPartitions:\n", (*topicMetadata).Name, (*topicMetadata).IsInternal)
 
-		partitions := data.Partitions
-		for partition := range partitions {
-			partitionMetadata := *partitions[partition]
-			fmt.Printf("Id: %v, Leader: %v, Replicas: %v, ISR: %v, OfflineReplicas: %v\n", partitionMetadata.ID, partitionMetadata.Leader, partitionMetadata.Replicas, partitionMetadata.Isr, partitionMetadata.OfflineReplicas)
+		partitions := (*topicMetadata).Partitions
+		for _, partitionMetadata := range partitions {
+			fmt.Printf("Id: %v, Leader: %v, Replicas: %v, ISR: %v, OfflineReplicas: %v\n", (*partitionMetadata).ID, (*partitionMetadata).Leader, (*partitionMetadata).Replicas, (*partitionMetadata).Isr, (*partitionMetadata).OfflineReplicas)
 		}
+		fmt.Println()
 	}
 }
