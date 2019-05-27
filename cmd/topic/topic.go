@@ -51,3 +51,23 @@ func getNumOfBrokers(cmd *cobra.Command) int {
 	}
 	return numOfBrokers
 }
+
+func getKafkaPath(cmd *cobra.Command) string {
+	flags := cmd.Flags()
+	kafkaPath, err := flags.GetString("kafka-path")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return kafkaPath
+}
+
+func getZookeeper(cmd *cobra.Command) string {
+	flags := cmd.Flags()
+	zookeeper, err := flags.GetString("zookeeper")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return zookeeper
+}

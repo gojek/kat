@@ -1,11 +1,14 @@
 package topic
 
 import (
+	bytes2 "bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"math/rand"
+	"os/exec"
 	"source.golabs.io/hermes/kafka-admin-tools/utils"
 )
 
@@ -17,11 +20,15 @@ var increaseReplicationFactorCmd = &cobra.Command{
 
 func init() {
 	increaseReplicationFactorCmd.PersistentFlags().StringP("topics", "t", "", "Comma separated list of topic names to describe")
+	increaseReplicationFactorCmd.PersistentFlags().StringP("zookeeper", "z", "", "Comma separated list of zookeeper ips")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("replication-factor", "r", 0, "New Replication Factor")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("num-of-brokers", "n", 0, "Number of brokers in the cluster")
+	increaseReplicationFactorCmd.PersistentFlags().StringP("kafka-path", "p", "", "Path to the kafka executable")
 	increaseReplicationFactorCmd.MarkPersistentFlagRequired("topics")
+	increaseReplicationFactorCmd.MarkPersistentFlagRequired("zookeeper")
 	increaseReplicationFactorCmd.MarkPersistentFlagRequired("replication-factor")
 	increaseReplicationFactorCmd.MarkPersistentFlagRequired("num-of-brokers")
+	increaseReplicationFactorCmd.MarkPersistentFlagRequired("kafka-path")
 }
 
 type partitionDetail struct {
@@ -40,6 +47,8 @@ func increaseReplicationFactor(cmd *cobra.Command, args []string) {
 	topics := getTopicNames(cmd)
 	replicationFactor := getReplicationFactor(cmd)
 	numOfBrokers := getNumOfBrokers(cmd)
+	kafkaPath := getKafkaPath(cmd)
+	zookeeper := getZookeeper(cmd)
 
 	metadata, err := admin.DescribeTopics(topics)
 	if err != nil {
@@ -48,8 +57,25 @@ func increaseReplicationFactor(cmd *cobra.Command, args []string) {
 	}
 
 	reassignmentJson := buildReassignmentJson(metadata, replicationFactor, numOfBrokers)
-	bytes, err := json.Marshal(reassignmentJson)
-	fmt.Println(string(bytes))
+	bytes, err := json.MarshalIndent(reassignmentJson, "", "")
+	err = ioutil.WriteFile("/tmp/increase-replication-factor.json", bytes, 0644)
+	if err!= nil {
+		fmt.Printf("Error while creating increase-replication-factor.json: %v\n", err)
+		return
+	}
+
+	command := exec.Command("cd", kafkaPath)
+	command = exec.Command("kafka-reassign-partitions", "--zookeeper", zookeeper, "--reassignment-json-file", "/tmp/increase-replication-factor.json", "--execute")
+	var outb, errb bytes2.Buffer
+	command.Stdout = &outb
+	command.Stderr = &errb
+	err = command.Run()
+	if err != nil {
+		fmt.Printf("Error while increasing replication factor: %v\n", err)
+		fmt.Println(errb.String())
+		return
+	}
+	fmt.Println(outb.String())
 }
 
 func contains(arr []int32, elem int32) bool {
