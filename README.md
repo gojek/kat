@@ -30,6 +30,10 @@ Increase replication factor for topics
 
 ```./kat topic increase-replication-factor --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1,topic2" --replication-factor <r> --num-of-brokers <n> --kafka-path </path/to/kafka/binary>```
 
+Help
+
+```./kat --help```
+
 ### Future Scope
 - Add support for more admin operations
 - Equally spread ISR assignment across partitions while increasing replication factor

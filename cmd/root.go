@@ -11,7 +11,7 @@ import (
 var Admin sarama.ClusterAdmin
 
 var cliCmd = &cobra.Command{
-	Use:     "kafka-admin-tools",
+	Use:     "./kat",
 	Short:   "Tool used for admin activities against specified kafka brokers",
 	Version: fmt.Sprintf("%s (Commit: %s)", "0.0.1", "n/a"),
 }
