@@ -56,12 +56,23 @@ func increaseReplicationFactor(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	reassignmentJson := buildReassignmentJson(metadata, replicationFactor, numOfBrokers)
-	bytes, err := json.MarshalIndent(reassignmentJson, "", "")
+	for _, topicMetadata := range metadata {
+		fmt.Printf("Increasing replication factor for topic: %v\n", (*topicMetadata).Name)
+		err = reassignForTopic(*topicMetadata, replicationFactor, numOfBrokers, kafkaPath, zookeeper)
+		if err != nil {
+			fmt.Printf("Failed to increase replication factor for topic: %v\n", (*topicMetadata).Name)
+		} else {
+			fmt.Printf("Successfully increased replication factor for topic: %v\n", (*topicMetadata).Name)
+		}
+	}
+}
+
+func reassignForTopic(topicMetadata sarama.TopicMetadata, replicationFactor, numOfBrokers int, kafkaPath, zookeeper string) error {
+	bytes, err := json.MarshalIndent(buildReassignmentJson(topicMetadata, replicationFactor, numOfBrokers), "", "")
 	err = ioutil.WriteFile("/tmp/increase-replication-factor.json", bytes, 0644)
-	if err!= nil {
+	if err != nil {
 		fmt.Printf("Error while creating increase-replication-factor.json: %v\n", err)
-		return
+		return err
 	}
 
 	command := exec.Command("cd", kafkaPath)
@@ -73,9 +84,29 @@ func increaseReplicationFactor(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Printf("Error while increasing replication factor: %v\n", err)
 		fmt.Println(errb.String())
-		return
+		return err
 	}
 	fmt.Println(outb.String())
+	return nil
+}
+
+func buildReassignmentJson(topicMetadata sarama.TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJson {
+	reassignmentJson := reassignmentJson{Version: 1, Partitions: []partitionDetail{}}
+	partitions := topicMetadata.Partitions
+	for _, partitionMetadata := range partitions {
+		replicas := []int32{(*partitionMetadata).Leader}
+		for r := 1; r <= replicationFactor-1; {
+			replica := int32(rand.Intn(numOfBrokers) + 1)
+			if contains(replicas, replica) {
+				continue
+			}
+			replicas = append(replicas, replica)
+			r++
+		}
+		partitionDetail := partitionDetail{Topic: topicMetadata.Name, Partition: (*partitionMetadata).ID, Replicas: replicas}
+		reassignmentJson.Partitions = append(reassignmentJson.Partitions, partitionDetail)
+	}
+	return reassignmentJson
 }
 
 func contains(arr []int32, elem int32) bool {
@@ -85,25 +116,4 @@ func contains(arr []int32, elem int32) bool {
 		}
 	}
 	return false
-}
-
-func buildReassignmentJson(metadata []*sarama.TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJson {
-	reassignmentJson := reassignmentJson{Version: 1, Partitions: []partitionDetail{}}
-	for _, topicMetadata := range metadata {
-		partitions := (*topicMetadata).Partitions
-		for _, partitionMetadata := range partitions {
-			replicas := []int32{(*partitionMetadata).Leader}
-			for r := 1; r <= replicationFactor-1; {
-				replica := int32(rand.Intn(numOfBrokers) + 1)
-				if contains(replicas, replica) {
-					continue
-				}
-				replicas = append(replicas, replica)
-				r++
-			}
-			partitionDetail := partitionDetail{Topic: (*topicMetadata).Name, Partition: (*partitionMetadata).ID, Replicas: replicas}
-			reassignmentJson.Partitions = append(reassignmentJson.Partitions, partitionDetail)
-		}
-	}
-	return reassignmentJson
 }
