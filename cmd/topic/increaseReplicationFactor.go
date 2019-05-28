@@ -45,10 +45,10 @@ type reassignmentJson struct {
 func increaseReplicationFactor(cmd *cobra.Command, args []string) {
 	admin := utils.GetAdminClient(cmd)
 	topics := getTopicNames(cmd)
-	replicationFactor := getReplicationFactor(cmd)
-	numOfBrokers := getNumOfBrokers(cmd)
-	kafkaPath := getKafkaPath(cmd)
-	zookeeper := getZookeeper(cmd)
+	replicationFactor := utils.GetIntArg(cmd, "replication-factor")
+	numOfBrokers := utils.GetIntArg(cmd, "num-of-brokers")
+	kafkaPath := utils.GetCmdArg(cmd, "kafka-path")
+	zookeeper := utils.GetCmdArg(cmd, "zookeeper")
 
 	metadata, err := admin.DescribeTopics(topics)
 	if err != nil {

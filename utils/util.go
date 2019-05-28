@@ -5,11 +5,12 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
 	"os"
+	"strconv"
 	"strings"
 )
 
 func GetAdminClient(cmd *cobra.Command) sarama.ClusterAdmin {
-	addr := getBrokerList(cmd)
+	addr := strings.Split(GetCmdArg(cmd, "broker-list"), ",")
 	cfg := sarama.NewConfig()
 	cfg.Version = sarama.V2_0_0_0
 
@@ -22,12 +23,15 @@ func GetAdminClient(cmd *cobra.Command) sarama.ClusterAdmin {
 	return admin
 }
 
-func getBrokerList(cmd *cobra.Command) []string {
-	flags := cmd.Flags()
-	brokerList, err := flags.GetString("broker-list")
+func GetCmdArg(cmd *cobra.Command, argName string) string {
+	return cmd.Flags().Lookup(argName).Value.String()
+}
+
+func GetIntArg(cmd *cobra.Command, argName string) int {
+	val, err := strconv.Atoi(GetCmdArg(cmd, argName))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Error while retrieving int argument: %v\n", err)
 		os.Exit(1)
 	}
-	return strings.Split(brokerList, ",")
+	return val
 }

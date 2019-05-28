@@ -18,7 +18,7 @@ func init() {
 
 func list(cmd *cobra.Command, args []string) {
 	admin := utils.GetAdminClient(cmd)
-	replicationFactor := getReplicationFactor(cmd)
+	replicationFactor := utils.GetIntArg(cmd, "replication-factor")
 
 	topicDetails, err := admin.ListTopics()
 	if err != nil {

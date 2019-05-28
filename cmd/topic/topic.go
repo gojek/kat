@@ -1,9 +1,8 @@
 package topic
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
-	"os"
+	"source.golabs.io/hermes/kafka-admin-tools/utils"
 	"strings"
 )
 
@@ -22,52 +21,6 @@ func init() {
 
 }
 
-func getReplicationFactor(cmd *cobra.Command) int {
-	flags := cmd.Flags()
-	replicationFactor, err := flags.GetInt("replication-factor")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	return replicationFactor
-}
-
 func getTopicNames(cmd *cobra.Command) []string {
-	flags := cmd.Flags()
-	topics, err := flags.GetString("topics")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	return strings.Split(topics, ",")
-}
-
-func getNumOfBrokers(cmd *cobra.Command) int {
-	flags := cmd.Flags()
-	numOfBrokers, err := flags.GetInt("num-of-brokers")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	return numOfBrokers
-}
-
-func getKafkaPath(cmd *cobra.Command) string {
-	flags := cmd.Flags()
-	kafkaPath, err := flags.GetString("kafka-path")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	return kafkaPath
-}
-
-func getZookeeper(cmd *cobra.Command) string {
-	flags := cmd.Flags()
-	zookeeper, err := flags.GetString("zookeeper")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	return zookeeper
+	return strings.Split(utils.GetCmdArg(cmd, "topics"), ",")
 }
