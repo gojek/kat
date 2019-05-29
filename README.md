@@ -36,4 +36,3 @@ Help
 
 ### Future Scope
 - Add support for more admin operations
-- Equally spread ISR assignment across partitions while increasing replication factor

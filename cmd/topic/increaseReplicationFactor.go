@@ -7,7 +7,6 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
 	"io/ioutil"
-	"math/rand"
 	"os/exec"
 	"source.golabs.io/hermes/kafka-admin-tools/utils"
 )
@@ -93,27 +92,30 @@ func reassignForTopic(topicMetadata sarama.TopicMetadata, replicationFactor, num
 func buildReassignmentJson(topicMetadata sarama.TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJson {
 	reassignmentJson := reassignmentJson{Version: 1, Partitions: []partitionDetail{}}
 	partitions := topicMetadata.Partitions
+	leaderCounter := make(map[int32]int32)
 	for _, partitionMetadata := range partitions {
-		replicas := []int32{(*partitionMetadata).Leader}
-		for r := 1; r <= replicationFactor-1; {
-			replica := int32(rand.Intn(numOfBrokers) + 1)
-			if contains(replicas, replica) {
-				continue
-			}
-			replicas = append(replicas, replica)
-			r++
-		}
+		replicas := buildReplicaSet((*partitionMetadata).Leader, int32(replicationFactor), int32(numOfBrokers), leaderCounter)
 		partitionDetail := partitionDetail{Topic: topicMetadata.Name, Partition: (*partitionMetadata).ID, Replicas: replicas}
 		reassignmentJson.Partitions = append(reassignmentJson.Partitions, partitionDetail)
 	}
 	return reassignmentJson
 }
 
-func contains(arr []int32, elem int32) bool {
-	for _, e := range arr {
-		if e == elem {
-			return true
+func buildReplicaSet(leader, replicationFactor, numOfBrokers int32, leaderCounter map[int32]int32) []int32 {
+	replicas := []int32{leader}
+	skipFactor := 0
+	for i := 1; i < int(replicationFactor); {
+		replica := (leader + ((replicationFactor - 1) * leaderCounter[leader] + int32(i)) + int32(skipFactor)) % numOfBrokers
+		if replica == 0 {
+			replica = numOfBrokers
 		}
+		if replica == leader {
+			skipFactor = 1
+			continue;
+		}
+		replicas = append(replicas, replica)
+		i++
 	}
-	return false
+	leaderCounter[leader] = leaderCounter[leader] + 1
+	return replicas
 }
