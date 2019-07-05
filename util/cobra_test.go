@@ -1,0 +1,73 @@
+package util
+
+import (
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+var testCmd = &cobra.Command{
+	Use: "test",
+}
+
+func init() {
+	testCmd.PersistentFlags().StringP("key1", "", "", "test key 1")
+	testCmd.PersistentFlags().StringP("key2", "", "", "test key 2")
+	testCmd.PersistentFlags().StringP("topics", "t", "", "topics")
+}
+
+func TestCobraUtil_GetCmdArgReturnsValue(t *testing.T) {
+	testCmd.SetArgs([]string{
+		"--key1=val1",
+	})
+	testCmd.Execute()
+
+	util := NewCobraUtil(testCmd)
+	value := util.GetCmdArg("key1")
+
+	assert.Equal(t, "val1", value)
+}
+
+func TestCobraUtil_GetCmdArgReturnsEmptyStringWhenNotPresent(t *testing.T) {
+	testCmd.Execute()
+
+	util := NewCobraUtil(testCmd)
+	value := util.GetCmdArg("key2")
+
+	assert.Equal(t, "", value)
+}
+
+func TestCobraUtil_GetIntArgReturnsIntValue(t *testing.T) {
+	testCmd.SetArgs([]string{
+		"--key1=1",
+	})
+	testCmd.Execute()
+
+	util := NewCobraUtil(testCmd)
+	value := util.GetIntArg("key1")
+
+	assert.Equal(t, 1, value)
+}
+
+func TestCobraUtil_GetIntArgReturnsZeroWhenNotPresent(t *testing.T) {
+	testCmd.Execute()
+
+	util := NewCobraUtil(testCmd)
+	value := util.GetIntArg("key2")
+
+	assert.Equal(t, 0, value)
+}
+
+func TestCobraUtil_GetTopicNamesReturnsArrayWithValue(t *testing.T) {
+	testCmd.SetArgs([]string{
+		"--topics=topic1,topic2",
+	})
+	testCmd.Execute()
+
+	util := NewCobraUtil(testCmd)
+	value := util.GetTopicNames()
+
+	assert.Equal(t, 2, len(value))
+	assert.Equal(t, "topic1", value[0])
+	assert.Equal(t, "topic2", value[1])
+}

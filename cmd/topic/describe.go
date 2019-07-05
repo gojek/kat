@@ -2,14 +2,20 @@ package topic
 
 import (
 	"fmt"
+	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
-	"source.golabs.io/hermes/kafka-admin-tools/utils"
+	"source.golabs.io/hermes/kafka-admin-tools/util"
 )
 
 var describeCmd = &cobra.Command{
 	Use:   "describe",
 	Short: "Describes the given topic",
-	Run:   describe,
+	Run: func(cmd *cobra.Command, args []string) {
+		u := util.NewCobraUtil(cmd)
+		admin := u.GetAdminClient()
+		topics := u.GetTopicNames()
+		describe(admin, topics)
+	},
 }
 
 func init() {
@@ -17,10 +23,7 @@ func init() {
 	describeCmd.MarkPersistentFlagRequired("topics")
 }
 
-func describe(cmd *cobra.Command, args []string) {
-	admin := utils.GetAdminClient(cmd)
-	topics := getTopicNames(cmd)
-
+func describe(admin sarama.ClusterAdmin, topics []string) {
 	metadata, err := admin.DescribeTopics(topics)
 	if err != nil {
 		fmt.Printf("Error while retrieving topic information %v\n", err)

@@ -2,24 +2,27 @@ package topic
 
 import (
 	"fmt"
+	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
-	"source.golabs.io/hermes/kafka-admin-tools/utils"
+	"source.golabs.io/hermes/kafka-admin-tools/util"
 )
 
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "Lists the topics satisfying the passed criteria if any",
-	Run:   list,
+	Run: func(cmd *cobra.Command, args []string) {
+		u := util.NewCobraUtil(cmd)
+		admin := u.GetAdminClient()
+		replicationFactor := u.GetIntArg("replication-factor")
+		list(admin, replicationFactor)
+	},
 }
 
 func init() {
 	listCmd.PersistentFlags().IntP("replication-factor", "r", 0, "Replication Factor of the topic")
 }
 
-func list(cmd *cobra.Command, args []string) {
-	admin := utils.GetAdminClient(cmd)
-	replicationFactor := utils.GetIntArg(cmd, "replication-factor")
-
+func list(admin sarama.ClusterAdmin, replicationFactor int) {
 	topicDetails, err := admin.ListTopics()
 	if err != nil {
 		fmt.Printf("Err while retrieving topic details: %v\n", err)
@@ -35,5 +38,3 @@ func list(cmd *cobra.Command, args []string) {
 		}
 	}
 }
-
-

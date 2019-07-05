@@ -2,8 +2,7 @@ package topic
 
 import (
 	"github.com/spf13/cobra"
-	"source.golabs.io/hermes/kafka-admin-tools/utils"
-	"strings"
+	"source.golabs.io/hermes/kafka-admin-tools/cmd/topic/config"
 )
 
 var TopicCmd = &cobra.Command{
@@ -18,9 +17,6 @@ func init() {
 	TopicCmd.AddCommand(listCmd)
 	TopicCmd.AddCommand(describeCmd)
 	TopicCmd.AddCommand(increaseReplicationFactorCmd)
+	TopicCmd.AddCommand(config.ConfigCmd)
 
-}
-
-func getTopicNames(cmd *cobra.Command) []string {
-	return strings.Split(utils.GetCmdArg(cmd, "topics"), ",")
 }

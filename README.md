@@ -30,6 +30,14 @@ Increase replication factor for topics
 
 ```./kat topic increase-replication-factor --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1,topic2" --replication-factor <r> --num-of-brokers <n> --kafka-path </path/to/kafka/binary>```
 
+Show Config for topics
+
+```./kat topic config show --topics "topic1,topic2" --broker-list "broker1,broker2"```
+
+Alter Config for topics
+
+```./kat topic config alter --topics "topic1,topic2" --broker-list "broker1,broker2" --config "retention.ms=500000000"```
+
 Help
 
 ```./kat --help```

@@ -8,13 +8,22 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os/exec"
-	"source.golabs.io/hermes/kafka-admin-tools/utils"
+	"source.golabs.io/hermes/kafka-admin-tools/util"
 )
 
 var increaseReplicationFactorCmd = &cobra.Command{
 	Use:   "increase-replication-factor",
 	Short: "Increases the replication factor for the given topics by the given number",
-	Run:   increaseReplicationFactor,
+	Run: func(cmd *cobra.Command, args []string) {
+		u := util.NewCobraUtil(cmd)
+		admin := u.GetAdminClient()
+		topics := u.GetTopicNames()
+		replicationFactor := u.GetIntArg("replication-factor")
+		numOfBrokers := u.GetIntArg("num-of-brokers")
+		kafkaPath := u.GetCmdArg("kafka-path")
+		zookeeper := u.GetCmdArg("zookeeper")
+		increaseReplicationFactor(admin, topics, replicationFactor, numOfBrokers, kafkaPath, zookeeper)
+	},
 }
 
 func init() {
@@ -36,19 +45,12 @@ type partitionDetail struct {
 	Replicas  []int32 `json:"replicas"`
 }
 
-type reassignmentJson struct {
+type reassignmentJSON struct {
 	Version    int               `json:"version"`
 	Partitions []partitionDetail `json:"partitions"`
 }
 
-func increaseReplicationFactor(cmd *cobra.Command, args []string) {
-	admin := utils.GetAdminClient(cmd)
-	topics := getTopicNames(cmd)
-	replicationFactor := utils.GetIntArg(cmd, "replication-factor")
-	numOfBrokers := utils.GetIntArg(cmd, "num-of-brokers")
-	kafkaPath := utils.GetCmdArg(cmd, "kafka-path")
-	zookeeper := utils.GetCmdArg(cmd, "zookeeper")
-
+func increaseReplicationFactor(admin sarama.ClusterAdmin, topics []string, replicationFactor, numOfBrokers int, kafkaPath, zookeeper string) {
 	metadata, err := admin.DescribeTopics(topics)
 	if err != nil {
 		fmt.Printf("Error while fetching topic metadata: %v\n", err)
@@ -67,7 +69,7 @@ func increaseReplicationFactor(cmd *cobra.Command, args []string) {
 }
 
 func reassignForTopic(topicMetadata sarama.TopicMetadata, replicationFactor, numOfBrokers int, kafkaPath, zookeeper string) error {
-	bytes, err := json.MarshalIndent(buildReassignmentJson(topicMetadata, replicationFactor, numOfBrokers), "", "")
+	bytes, err := json.MarshalIndent(buildReassignmentJSON(topicMetadata, replicationFactor, numOfBrokers), "", "")
 	err = ioutil.WriteFile("/tmp/increase-replication-factor.json", bytes, 0644)
 	if err != nil {
 		fmt.Printf("Error while creating increase-replication-factor.json: %v\n", err)
@@ -89,29 +91,29 @@ func reassignForTopic(topicMetadata sarama.TopicMetadata, replicationFactor, num
 	return nil
 }
 
-func buildReassignmentJson(topicMetadata sarama.TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJson {
-	reassignmentJson := reassignmentJson{Version: 1, Partitions: []partitionDetail{}}
+func buildReassignmentJSON(topicMetadata sarama.TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJSON {
+	reassignmentJSON := reassignmentJSON{Version: 1, Partitions: []partitionDetail{}}
 	partitions := topicMetadata.Partitions
 	leaderCounter := make(map[int32]int32)
 	for _, partitionMetadata := range partitions {
 		replicas := buildReplicaSet((*partitionMetadata).Leader, int32(replicationFactor), int32(numOfBrokers), leaderCounter)
 		partitionDetail := partitionDetail{Topic: topicMetadata.Name, Partition: (*partitionMetadata).ID, Replicas: replicas}
-		reassignmentJson.Partitions = append(reassignmentJson.Partitions, partitionDetail)
+		reassignmentJSON.Partitions = append(reassignmentJSON.Partitions, partitionDetail)
 	}
-	return reassignmentJson
+	return reassignmentJSON
 }
 
 func buildReplicaSet(leader, replicationFactor, numOfBrokers int32, leaderCounter map[int32]int32) []int32 {
 	replicas := []int32{leader}
 	skipFactor := 0
 	for i := 1; i < int(replicationFactor); {
-		replica := (leader + ((replicationFactor - 1) * leaderCounter[leader] + int32(i)) + int32(skipFactor)) % numOfBrokers
+		replica := (leader + ((replicationFactor-1)*leaderCounter[leader] + int32(i)) + int32(skipFactor)) % numOfBrokers
 		if replica == 0 {
 			replica = numOfBrokers
 		}
 		if replica == leader {
 			skipFactor = 1
-			continue;
+			continue
 		}
 		replicas = append(replicas, replica)
 		i++
