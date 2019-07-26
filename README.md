@@ -1,6 +1,6 @@
-# Kafka-Admin-Tools
+# KAT
 
-This tool provides an easy interface to perform admin operations on kafka.
+`Kafka Admin Tool` provides an easy interface to perform admin operations on kafka.
 
 ### Admin operations available
 - List topics
@@ -8,8 +8,7 @@ This tool provides an easy interface to perform admin operations on kafka.
 - Increase replication factor of existing topics
 
 ### Installation
-1. Clone the repository --
-```git clone git@source.golabs.io:hermes/kafka-admin-tools.git```
+1. ```go get -u github.com/gojekfarm/kat```
 2. Build the project -- 
 ```make```
 
@@ -44,3 +43,22 @@ Help
 
 ### Future Scope
 - Add support for more admin operations
+
+
+## License
+
+```
+Copyright 2019, GO-JEK Tech (http://gojek.tech)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
