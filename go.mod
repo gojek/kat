@@ -1,4 +1,4 @@
-module source.golabs.io/hermes/kafka-admin-tools
+module source.golabs.io/hermes/kat
 
 go 1.12
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
-	"source.golabs.io/hermes/kafka-admin-tools/util"
+	"source.golabs.io/hermes/kat/util"
 	"strings"
 )
 

@@ -2,7 +2,7 @@ package topic
 
 import (
 	"github.com/spf13/cobra"
-	"source.golabs.io/hermes/kafka-admin-tools/cmd/topic/config"
+	"source.golabs.io/hermes/kat/cmd/topic/config"
 )
 
 var TopicCmd = &cobra.Command{

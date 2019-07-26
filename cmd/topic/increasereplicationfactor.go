@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os/exec"
-	"source.golabs.io/hermes/kafka-admin-tools/util"
+	"source.golabs.io/hermes/kat/util"
 )
 
 var increaseReplicationFactorCmd = &cobra.Command{

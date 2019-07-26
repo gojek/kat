@@ -5,7 +5,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
 	"os"
-	"source.golabs.io/hermes/kafka-admin-tools/cmd/topic"
+	"source.golabs.io/hermes/kat/cmd/topic"
 )
 
 var Admin sarama.ClusterAdmin

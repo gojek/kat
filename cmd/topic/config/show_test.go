@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/Shopify/sarama"
-	"source.golabs.io/hermes/kafka-admin-tools/testutil"
+	"source.golabs.io/hermes/kat/testutil"
 	"testing"
 )
 

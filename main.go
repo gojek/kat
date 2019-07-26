@@ -1,7 +1,7 @@
 package main
 
 import (
-	"source.golabs.io/hermes/kafka-admin-tools/cmd"
+	"source.golabs.io/hermes/kat/cmd"
 )
 
 func main() {
