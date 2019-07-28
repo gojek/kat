@@ -3,8 +3,8 @@ package topic
 import (
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
-	"source.golabs.io/hermes/kat/util"
 )
 
 var describeCmd = &cobra.Command{

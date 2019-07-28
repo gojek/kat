@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os/exec"
-	"source.golabs.io/hermes/kat/util"
 )
 
 var increaseReplicationFactorCmd = &cobra.Command{

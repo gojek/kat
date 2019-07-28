@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/cmd/topic"
 	"github.com/spf13/cobra"
 	"os"
-	"source.golabs.io/hermes/kat/cmd/topic"
 )
 
 var Admin sarama.ClusterAdmin
