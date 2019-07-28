@@ -12,6 +12,13 @@
 2. Build the project -- 
 ```make```
 
+#### Using Homebrew
+
+```
+brew tap gojekfarm/stable
+brew install kat
+```
+
 ### Usage
 List all topics in a kafka cluster
 
@@ -62,3 +69,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
+
+Note
+- update the latest release version to `https://github.com/gojekfarm/homebrew-stable` 
