@@ -1,4 +1,5 @@
 all: clean check-quality test build
+APP=kat
 ALL_PACKAGES=$(shell go list ./...)
 SOURCE_DIRS=$(shell go list ./... | cut -d "/" -f4 | uniq)
 
@@ -6,10 +7,16 @@ clean:
 	rm -f ./kat
 	GO111MODULE=on go mod tidy -v
 
+setup:
+	go get -u golang.org/x/tools/cmd/goimports
+	go get -u golang.org/x/lint/golint
+	go get -u github.com/fzipp/gocyclo
+
 test:
 	go test ./...
 
 build:
+	@echo "Building './kat'..."
 	go mod download
 	go build -o kat
 

@@ -1,8 +1,8 @@
 package topic
 
 import (
+	"github.com/gojekfarm/kat/cmd/topic/config"
 	"github.com/spf13/cobra"
-	"source.golabs.io/hermes/kat/cmd/topic/config"
 )
 
 var TopicCmd = &cobra.Command{

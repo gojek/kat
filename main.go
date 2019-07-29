@@ -1,7 +1,7 @@
 package main
 
 import (
-	"source.golabs.io/hermes/kat/cmd"
+	"github.com/gojekfarm/kat/cmd"
 )
 
 func main() {

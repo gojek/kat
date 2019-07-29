@@ -2,8 +2,8 @@ package topic
 
 import (
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/testutil"
 	"github.com/stretchr/testify/mock"
-	"source.golabs.io/hermes/kat/testutil"
 	"testing"
 )
 

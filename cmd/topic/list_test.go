@@ -2,7 +2,7 @@ package topic
 
 import (
 	"github.com/Shopify/sarama"
-	"source.golabs.io/hermes/kat/testutil"
+	"github.com/gojekfarm/kat/testutil"
 	"testing"
 )
 

@@ -84,6 +84,11 @@ func (m *MockClusterAdmin) DescribeCluster() (brokers []*sarama.Broker, controll
 	return args.Get(0).([]*sarama.Broker), args.Get(1).(int32), args.Error(2)
 }
 
+func (m *MockClusterAdmin) DeleteConsumerGroup(group string) error {
+	args := m.Called(group)
+	return args.Error(0)
+}
+
 func (m *MockClusterAdmin) Close() error {
 	args := m.Called()
 	return args.Error(0)
