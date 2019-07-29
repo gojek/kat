@@ -15,7 +15,7 @@
 #### Using Homebrew
 
 ```
-brew tap gojekfarm/stable
+brew tap gojek/stable
 brew install kat
 ```
 
@@ -71,4 +71,4 @@ limitations under the License.
 ```
 
 Note
-- update the latest release version to `https://github.com/gojekfarm/homebrew-stable` 
+- update the latest release version to `https://github.com/gojek/homebrew-tap` 
