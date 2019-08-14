@@ -13,7 +13,7 @@ func TestAlter(t *testing.T) {
 	config := "key1=val1"
 	admin.On("AlterConfig", sarama.TopicResource, "topic1", mock.Anything, false).Return(nil).Times(1)
 	admin.On("AlterConfig", sarama.TopicResource, "topic2", mock.Anything, false).Return(nil).Times(1)
-
-	alter(admin, topics, config)
+	a := alter{admin: admin, topics: topics, config: config}
+	a.alter()
 	admin.AssertExpectations(t)
 }

@@ -8,15 +8,19 @@ import (
 	"strings"
 )
 
+type alter struct {
+	admin  sarama.ClusterAdmin
+	config string
+	topics []string
+}
+
 var alterCmd = &cobra.Command{
 	Use:   "alter",
 	Short: "alter the config for the given topics",
 	Run: func(cmd *cobra.Command, args []string) {
 		u := util.NewCobraUtil(cmd)
-		admin := u.GetAdminClient()
-		topics := u.GetTopicNames()
-		config := u.GetCmdArg("config")
-		alter(admin, topics, config)
+		a := alter{admin: u.GetAdminClient("broker-list"), config: u.GetCmdArg("config"), topics: u.GetTopicNames()}
+		a.alter()
 	},
 }
 
@@ -25,11 +29,11 @@ func init() {
 	alterCmd.MarkPersistentFlagRequired("config")
 }
 
-func alter(admin sarama.ClusterAdmin, topics []string, config string) {
-	configMap := configMap(config)
+func (a *alter) alter() {
+	configMap := configMap(a.config)
 
-	for _, topic := range topics {
-		err := admin.AlterConfig(sarama.TopicResource, topic, configMap, false)
+	for _, topic := range a.topics {
+		err := a.admin.AlterConfig(sarama.TopicResource, topic, configMap, false)
 		if err != nil {
 			fmt.Printf("Err while altering config for topic - %v: %v\n", topic, err)
 			continue

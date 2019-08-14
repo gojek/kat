@@ -3,37 +3,37 @@ package config
 import (
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/topicutil"
 	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
 )
+
+type show struct {
+	admin  sarama.ClusterAdmin
+	topics []string
+}
 
 var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "shows the config for the given topics",
 	Run: func(cmd *cobra.Command, args []string) {
 		u := util.NewCobraUtil(cmd)
-		admin := u.GetAdminClient()
-		topics := u.GetTopicNames()
-		show(admin, topics)
+		s := show{admin: u.GetAdminClient("broker-list"), topics: u.GetTopicNames()}
+		s.show()
 	},
 }
 
-func show(admin sarama.ClusterAdmin, topics []string) {
-	for _, topic := range topics {
-		configs, err := admin.DescribeConfig(sarama.ConfigResource{Name: topic, Type: sarama.TopicResource})
-		if err != nil {
-			fmt.Printf("Err while fetching config for topic - %v: %v\n", topic, err)
-			continue
-		}
-		if len(configs) == 0 {
-			fmt.Printf("Config not found for topic - %v\n", topic)
+func (s *show) show() {
+	for _, topic := range s.topics {
+		configs := topicutil.DescribeConfig(s.admin, topic)
+		if configs == nil {
 			continue
 		}
 		fmt.Println("---------------------------------------------")
 		fmt.Printf("Configuration for topic - %v\n", topic)
 		fmt.Println("---------------------------------------------")
 		for _, config := range configs {
-			fmt.Println(config)
+			fmt.Printf("%+v\n", config)
 		}
 	}
 }

@@ -17,8 +17,8 @@ func NewCobraUtil(cmd *cobra.Command) *CobraUtil {
 	return &CobraUtil{cmd: cmd}
 }
 
-func (u *CobraUtil) GetAdminClient() sarama.ClusterAdmin {
-	addr := strings.Split(u.GetCmdArg("broker-list"), ",")
+func (u *CobraUtil) GetAdminClient(argName string) sarama.ClusterAdmin {
+	addr := strings.Split(u.GetCmdArg(argName), ",")
 	cfg := sarama.NewConfig()
 	cfg.Version = sarama.V2_0_0_0
 

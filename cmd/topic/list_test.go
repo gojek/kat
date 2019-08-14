@@ -7,10 +7,9 @@ import (
 )
 
 func TestList(t *testing.T) {
-	admin := testutil.MockClusterAdmin{}
-	replicationFactor := 1
+	admin := &testutil.MockClusterAdmin{}
 	admin.On("ListTopics").Return(map[string]sarama.TopicDetail{}, nil).Times(1)
-
-	list(&admin, replicationFactor)
+	l := list{admin: admin, replicationFactor: 1}
+	l.List()
 	admin.AssertExpectations(t)
 }

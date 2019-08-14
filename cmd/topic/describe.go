@@ -3,18 +3,23 @@ package topic
 import (
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/topicutil"
 	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
 )
+
+type describe struct {
+	admin  sarama.ClusterAdmin
+	topics []string
+}
 
 var describeCmd = &cobra.Command{
 	Use:   "describe",
 	Short: "Describes the given topic",
 	Run: func(cmd *cobra.Command, args []string) {
 		u := util.NewCobraUtil(cmd)
-		admin := u.GetAdminClient()
-		topics := u.GetTopicNames()
-		describe(admin, topics)
+		d := describe{admin: u.GetAdminClient("broker-list"), topics: u.GetTopicNames()}
+		d.describe()
 	},
 }
 
@@ -23,13 +28,15 @@ func init() {
 	describeCmd.MarkPersistentFlagRequired("topics")
 }
 
-func describe(admin sarama.ClusterAdmin, topics []string) {
-	metadata, err := admin.DescribeTopics(topics)
-	if err != nil {
-		fmt.Printf("Error while retrieving topic information %v\n", err)
+func (d *describe) describe() {
+	metadata := topicutil.DescribeTopicMetadata(d.admin, d.topics)
+	if metadata == nil {
 		return
 	}
+	printConfigs(metadata)
+}
 
+func printConfigs(metadata []*sarama.TopicMetadata) {
 	for _, topicMetadata := range metadata {
 		fmt.Printf("Topic Name: %v,\nIsInternal: %v,\nPartitions:\n", (*topicMetadata).Name, (*topicMetadata).IsInternal)
 
