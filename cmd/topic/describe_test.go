@@ -11,7 +11,7 @@ func TestDescribe(t *testing.T) {
 	admin := &testutil.MockClusterAdmin{}
 	topics := []string{"topic1"}
 	admin.On("DescribeTopics", mock.Anything).Return([]*sarama.TopicMetadata{}, nil).Times(1)
-
-	describe(admin, topics)
+	d := describe{admin: admin, topics: topics}
+	d.describe()
 	admin.AssertExpectations(t)
 }

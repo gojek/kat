@@ -16,7 +16,7 @@ var increaseReplicationFactorCmd = &cobra.Command{
 	Short: "Increases the replication factor for the given topics by the given number",
 	Run: func(cmd *cobra.Command, args []string) {
 		u := util.NewCobraUtil(cmd)
-		admin := u.GetAdminClient()
+		admin := u.GetAdminClient("broker-list")
 		topics := u.GetTopicNames()
 		replicationFactor := u.GetIntArg("replication-factor")
 		numOfBrokers := u.GetIntArg("num-of-brokers")
