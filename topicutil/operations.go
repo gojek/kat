@@ -12,7 +12,7 @@ func ListAll(admin sarama.ClusterAdmin) []string {
 	if topicDetails == nil {
 		return nil
 	}
-	for topicDetail := range topicDetails {
+	for topicDetail, _ := range topicDetails {
 		topicList = append(topicList, topicDetail)
 	}
 	return topicList
@@ -56,4 +56,24 @@ func DescribeTopicMetadata(admin sarama.ClusterAdmin, topics []string) []*sarama
 		return nil
 	}
 	return metadata
+}
+
+func ConfigMap(configStr string) map[string]*string {
+	configMap := make(map[string]*string)
+	configs := strings.Split(configStr, ",")
+	for _, config := range configs {
+		configArr := strings.Split(config, "=")
+		configMap[configArr[0]] = &configArr[1]
+	}
+	return configMap
+}
+
+func CreateTopic(admin sarama.ClusterAdmin, topic string, detail *sarama.TopicDetail, validateOnly bool) bool {
+	err := admin.CreateTopic(topic, detail, validateOnly)
+	if err != nil {
+		fmt.Printf("Error creating topic %v\n", err)
+		return false
+	}
+	fmt.Printf("Topic created %s\n", topic)
+	return true
 }

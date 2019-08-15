@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/cmd/mirror"
 	"github.com/gojekfarm/kat/cmd/topic"
 	"github.com/spf13/cobra"
 	"os"
@@ -19,6 +20,7 @@ var cliCmd = &cobra.Command{
 func init() {
 	cobra.OnInitialize()
 	cliCmd.AddCommand(topic.TopicCmd)
+	cliCmd.AddCommand(mirror.MirrorCmd)
 }
 
 func Execute() {
