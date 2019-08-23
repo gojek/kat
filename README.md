@@ -6,6 +6,8 @@
 - List topics
 - Describe topics
 - Increase replication factor of existing topics
+- Show Config for topics
+- Alter Config for topics
 
 ### Installation
 1. ```go get -u github.com/gojekfarm/kat```
