@@ -38,9 +38,11 @@ func init() {
 	MirrorCmd.PersistentFlags().StringP("source-broker-ips", "b", "", "Comma separated list of source broker ips")
 	MirrorCmd.PersistentFlags().StringP("destination-broker-ips", "d", "", "Comma separated list of broker ips to mirror the configs to")
 	MirrorCmd.PersistentFlags().StringP("topics", "t", "", "Comma separated list of topics to mirror the configs of. All topics are mirrored if not set.")
+	//TODO: Mirror only the topics that have overridden configs.
 	MirrorCmd.PersistentFlags().String("topics-with-overrides", "true", "Mirror only the topics that have overridden configs")
 	MirrorCmd.PersistentFlags().String("create-topics", "false", "Create the topics on destination cluster if not present and mirror the configs")
 	MirrorCmd.MarkPersistentFlagRequired("source-broker-ips")
+	MirrorCmd.MarkPersistentFlagRequired("destination-broker-ips")
 }
 
 func (m *mirror) getTopicList() bool {
