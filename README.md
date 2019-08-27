@@ -6,6 +6,7 @@
 - List topics
 - Describe topics
 - Increase replication factor of existing topics
+- Mirror topic configurations from source to destination cluster
 
 ### Installation
 1. ```go get -u github.com/gojekfarm/kat```
@@ -43,6 +44,21 @@ Show Config for topics
 Alter Config for topics
 
 ```./kat topic config alter --topics "topic1,topic2" --broker-list "broker1,broker2" --config "retention.ms=500000000"```
+
+Mirror topic configs from source to destination cluster
+
+- Specify topics to mirror.
+
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --topics topic1,topic2```
+
+- Specify topics to mirror and create the topics if not present on destination cluster. ```--create-topics true``` flag is set.
+
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --topics topic1,topic2 --create-topics true```
+
+- Mirror all topics and create the topics if not present
+
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --create-topics true```
+
 
 Help
 
