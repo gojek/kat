@@ -14,6 +14,7 @@ type mirror struct {
 	topics           []string
 	topicConfig      map[string]string
 	createTopic      string
+	partitions       string
 }
 
 var MirrorCmd = &cobra.Command{
@@ -24,13 +25,14 @@ var MirrorCmd = &cobra.Command{
 		m := mirror{sourceAdmin: u.GetAdminClient("source-broker-ips"),
 			destinationAdmin: u.GetAdminClient("destination-broker-ips"),
 			topics:           u.GetTopicNames(),
-			createTopic:      u.GetCmdArg("create-topics")}
+			createTopic:      u.GetCmdArg("create-topics"),
+			partitions:       u.GetCmdArg("increase-partitions")}
 		//TODO: Read configs to be mirrored from a json config file. Currently, everything is mirrored
 		ok := m.getTopicConfigs()
 		if !ok {
 			return
 		}
-		m.alterTopicConfigs()
+		m.mirrorTopicConfigs()
 	},
 }
 
@@ -41,13 +43,13 @@ func init() {
 	//TODO: Mirror only the topics that have overridden configs.
 	MirrorCmd.PersistentFlags().String("topics-with-overrides", "true", "Mirror only the topics that have overridden configs")
 	MirrorCmd.PersistentFlags().String("create-topics", "false", "Create the topics on destination cluster if not present and mirror the configs")
+	MirrorCmd.PersistentFlags().String("increase-partitions", "false", "Increase the partition count of topics on destination cluster")
 	MirrorCmd.MarkPersistentFlagRequired("source-broker-ips")
 	MirrorCmd.MarkPersistentFlagRequired("destination-broker-ips")
 }
 
 func (m *mirror) getTopicList() bool {
 	if m.topics[0] == "" {
-		//TODO: Take only the topics having overridden configs if `topics-with-overrides` flag is passed
 		m.topics = topicutil.ListAll(m.sourceAdmin)
 		if m.topics == nil {
 			return false
@@ -75,12 +77,13 @@ func (m *mirror) getTopicConfigs() bool {
 	return true
 }
 
-func (m *mirror) alterTopicConfigs() {
+func (m *mirror) mirrorTopicConfigs() {
 	destinationClusterTopics := topicutil.ListAll(m.destinationAdmin)
-	if destinationClusterTopics == nil {
+	destinationTopicDetails := topicutil.ListTopicDetails(m.destinationAdmin)
+	sourceTopicsDetails := topicutil.ListTopicDetails(m.sourceAdmin)
+	if destinationClusterTopics == nil || destinationTopicDetails == nil || sourceTopicsDetails == nil {
 		return
 	}
-	sourceTopicsDetails := topicutil.ListTopicDetails(m.sourceAdmin)
 	for _, topic := range m.topics {
 		if topicPresent(topic, destinationClusterTopics) == false {
 			if m.createTopic == "true" {
@@ -89,18 +92,37 @@ func (m *mirror) alterTopicConfigs() {
 				continue
 
 			} else {
-				fmt.Printf("Topic %s not present on destination cluster", topic)
+				fmt.Printf("Topic %s is not present on destination cluster. Pass --create-topics flag \n", topic)
 				continue
 			}
 		}
-		configMap := topicutil.ConfigMap(m.topicConfig[topic])
-		err := m.destinationAdmin.AlterConfig(sarama.TopicResource, topic, configMap, false)
-		if err != nil {
-			fmt.Printf("Err while altering config for topic - %v: %v\n", topic, err)
-			continue
-		} else {
-			fmt.Printf("Config was successfully altered for topic - %v\n", topic)
+		m.alterTopicConfigs(topic)
+		if m.partitions == "true" {
+			m.increasePartitions(topic, sourceTopicsDetails[topic].NumPartitions, destinationTopicDetails[topic].NumPartitions)
 		}
+	}
+}
+
+func (m *mirror) alterTopicConfigs(topic string) {
+	configMap := topicutil.ConfigMap(m.topicConfig[topic])
+	err := m.destinationAdmin.AlterConfig(sarama.TopicResource, topic, configMap, false)
+	if err != nil {
+		fmt.Printf("Err while altering config for topic - %v: %v\n", topic, err)
+	} else {
+		fmt.Printf("Config was successfully altered for topic - %v\n", topic)
+	}
+}
+
+func (m *mirror) increasePartitions(topic string, srcNoOfPartitions int32, destNoOfPartitions int32) {
+	if srcNoOfPartitions == destNoOfPartitions {
+		fmt.Printf("Partition count not increased as it is same on both clusters \n")
+		return
+	}
+	err := m.destinationAdmin.CreatePartitions(topic, srcNoOfPartitions, [][]int32{}, false)
+	if err != nil {
+		fmt.Printf("Err while increasing partition count for topic - %v: %v\n", topic, err)
+	} else {
+		fmt.Printf("Partition count successfully increased for topic - %v\n", topic)
 	}
 }
 
