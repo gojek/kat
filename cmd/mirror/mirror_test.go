@@ -16,7 +16,7 @@ func TestTopicConfigMirroredIfTopicExistsInDestination(t *testing.T) {
 	sourceAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("AlterConfig", sarama.TopicResource, "topic1", mock.AnythingOfType("map[string]*string"), false).Return(nil)
-	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: "false"}
+	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: false}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertExpectations(t)
 }
@@ -31,7 +31,7 @@ func TestTopicConfigIsNotMirroredIfTopicDoesNotExistsInDestination(t *testing.T)
 	sourceAdmin.On("ListTopics").Return(topicDetailsSrc, nil)
 	destinationAdmin.On("ListTopics").Return(topicDetailsDest, nil)
 	destinationAdmin.On("AlterConfig", sarama.TopicResource, "topic1", mock.AnythingOfType("map[string]*string"), false).Return(nil)
-	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, createTopic: "false", partitions: "false"}
+	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, createTopic: false, partitions: false}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertNotCalled(t, "AlterConfig", sarama.TopicResource, "topic1", mock.AnythingOfType("map[string]*string"), false)
 }
@@ -47,7 +47,7 @@ func TestTopicCreatedAndConfigMirrored(t *testing.T) {
 	sourceAdmin.On("ListTopics").Return(topicDetailsSrc, nil)
 	destinationAdmin.On("ListTopics").Return(topicDetailsDest, nil)
 	destinationAdmin.On("CreateTopic", "topic1", &detail, false).Return(nil).Times(1)
-	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, createTopic: "true", partitions: "false"}
+	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, createTopic: true, partitions: false}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertExpectations(t)
 	sourceAdmin.AssertExpectations(t)
@@ -61,7 +61,7 @@ func TestTopicPartitionCountNotMirrored(t *testing.T) {
 	sourceAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("AlterConfig", sarama.TopicResource, "topic1", mock.AnythingOfType("map[string]*string"), false).Return(nil)
-	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: "true"}
+	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: true}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertNotCalled(t, "CreatePartitions", "topic1", 2, nil, false)
 	sourceAdmin.AssertExpectations(t)
@@ -82,7 +82,7 @@ func TestTopicPartitionCountMirrored(t *testing.T) {
 	destinationAdmin.On("ListTopics").Return(topicDetailsDest, nil)
 	destinationAdmin.On("AlterConfig", sarama.TopicResource, "topic1", cfgMap, false).Return(nil)
 	destinationAdmin.On("CreatePartitions", "topic1", int32(10), [][]int32{}, false).Return(nil)
-	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: "true"}
+	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: true}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertExpectations(t)
 	sourceAdmin.AssertExpectations(t)

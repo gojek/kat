@@ -57,3 +57,15 @@ func (u *CobraUtil) GetIntArg(argName string) int {
 func (u *CobraUtil) GetTopicNames() []string {
 	return strings.Split(u.GetCmdArg("topics"), ",")
 }
+
+
+func (u *CobraUtil) GetBoolArg(argName string) bool{
+	strVal := u.GetCmdArg(argName)
+	val, err := strconv.ParseBool(strVal)
+	if err != nil {
+		fmt.Printf("Error while retrieving bool argument: %v\n", err)
+		os.Exit(1)
+	}
+	return val
+
+}

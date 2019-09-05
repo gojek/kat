@@ -15,6 +15,7 @@ func init() {
 	testCmd.PersistentFlags().StringP("key1", "", "", "test key 1")
 	testCmd.PersistentFlags().StringP("key2", "", "", "test key 2")
 	testCmd.PersistentFlags().StringP("topics", "t", "", "topics")
+	testCmd.PersistentFlags().Bool("increase-partitions", false, "partitions")
 }
 
 func TestCobraUtil_GetCmdArgReturnsValue(t *testing.T) {
@@ -71,4 +72,16 @@ func TestCobraUtil_GetTopicNamesReturnsArrayWithValue(t *testing.T) {
 	assert.Equal(t, 2, len(value))
 	assert.Equal(t, "topic1", value[0])
 	assert.Equal(t, "topic2", value[1])
+}
+
+func TestCobraUtil_GetBoolArgsReturnsTrue(t *testing.T) {
+	testCmd.SetArgs([]string{
+		"--increase-partitions",
+	})
+	testCmd.Execute()
+
+	util := NewCobraUtil(testCmd)
+	val := util.GetBoolArg("increase-partitions")
+
+	assert.Equal(t, true, val)
 }

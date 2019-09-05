@@ -14,8 +14,8 @@ type mirror struct {
 	destinationAdmin sarama.ClusterAdmin
 	topics           []string
 	topicConfig      map[string]string
-	createTopic      string
-	partitions       string
+	createTopic      bool
+	partitions       bool
 }
 
 var MirrorCmd = &cobra.Command{
@@ -26,8 +26,8 @@ var MirrorCmd = &cobra.Command{
 		m := mirror{sourceAdmin: u.GetAdminClient("source-broker-ips"),
 			destinationAdmin: u.GetAdminClient("destination-broker-ips"),
 			topics:           u.GetTopicNames(),
-			createTopic:      u.GetCmdArg("create-topics"),
-			partitions:       u.GetCmdArg("increase-partitions")}
+			createTopic:      u.GetBoolArg("create-topics"),
+			partitions:       u.GetBoolArg("increase-partitions")}
 		//TODO: Read configs to be mirrored from a json config file. Currently, everything is mirrored
 		ok := m.getTopicConfigs()
 		if !ok {
@@ -43,8 +43,8 @@ func init() {
 	MirrorCmd.PersistentFlags().StringP("topics", "t", "", "Comma separated list of topics to mirror the configs of. All topics are mirrored if not set.")
 	//TODO: Mirror only the topics that have overridden configs.
 	MirrorCmd.PersistentFlags().String("topics-with-overrides", "true", "Mirror only the topics that have overridden configs")
-	MirrorCmd.PersistentFlags().String("create-topics", "false", "Create the topics on destination cluster if not present and mirror the configs")
-	MirrorCmd.PersistentFlags().String("increase-partitions", "false", "Increase the partition count of topics on destination cluster")
+	MirrorCmd.PersistentFlags().Bool("create-topics", false, "Create the topics on destination cluster if not present and mirror the configs")
+	MirrorCmd.PersistentFlags().Bool("increase-partitions", false, "Increase the partition count of topics on destination cluster")
 	MirrorCmd.MarkPersistentFlagRequired("source-broker-ips")
 	MirrorCmd.MarkPersistentFlagRequired("destination-broker-ips")
 }
@@ -87,7 +87,7 @@ func (m *mirror) mirrorTopicConfigs() {
 	}
 	for _, topic := range m.topics {
 		if topicPresent(topic, destinationClusterTopics) == false {
-			if m.createTopic == "true" {
+			if m.createTopic {
 				topicDetail := sourceTopicsDetails[topic]
 				topicDetail.ReplicaAssignment = nil
 				topicutil.CreateTopic(m.destinationAdmin, topic, &topicDetail, false)
@@ -99,7 +99,7 @@ func (m *mirror) mirrorTopicConfigs() {
 			}
 		}
 		m.alterTopicConfigs(topic)
-		if m.partitions == "true" {
+		if m.partitions {
 			m.increasePartitions(topic, sourceTopicsDetails[topic].NumPartitions, destinationTopicDetails[topic].NumPartitions)
 		}
 	}

@@ -55,11 +55,11 @@ Mirror topic configs from source to destination cluster
 
 - Specify topics to mirror and create the topics if not present on destination cluster. ```--create-topics true``` flag is set.
 
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --topics topic1,topic2 --create-topics true```
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --topics topic1,topic2 --create-topics```
 
 - Mirror all topics and create the topics if not present
 
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --create-topics true```
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --create-topics```
 
 
 Help
