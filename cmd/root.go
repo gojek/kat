@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/cmd/mirror"
 	"github.com/gojekfarm/kat/cmd/topic"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var Admin sarama.ClusterAdmin

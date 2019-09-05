@@ -4,11 +4,12 @@ import (
 	bytes2 "bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os/exec"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"os/exec"
 )
 
 var increaseReplicationFactorCmd = &cobra.Command{

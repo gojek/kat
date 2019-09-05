@@ -1,9 +1,10 @@
 package topic
 
 import (
+	"testing"
+
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestBuildReassignmentJson(suite *testing.T) {

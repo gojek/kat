@@ -1,9 +1,10 @@
 package util
 
 import (
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var testCmd = &cobra.Command{

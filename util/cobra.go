@@ -2,11 +2,12 @@ package util
 
 import (
 	"fmt"
-	"github.com/Shopify/sarama"
-	"github.com/spf13/cobra"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/Shopify/sarama"
+	"github.com/spf13/cobra"
 )
 
 type CobraUtil struct {

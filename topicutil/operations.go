@@ -3,8 +3,9 @@ package topicutil
 import (
 	"fmt"
 	"strings"
+
+	"github.com/Shopify/sarama"
 )
-import "github.com/Shopify/sarama"
 
 func ListAll(admin sarama.ClusterAdmin) []string {
 	var topicList []string

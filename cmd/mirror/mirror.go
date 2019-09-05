@@ -2,6 +2,7 @@ package mirror
 
 import (
 	"fmt"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/topicutil"
 	"github.com/gojekfarm/kat/util"
