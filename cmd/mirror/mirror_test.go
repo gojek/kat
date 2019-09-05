@@ -1,10 +1,11 @@
 package mirror
 
 import (
+	"testing"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/testutil"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestTopicConfigMirroredIfTopicExistsInDestination(t *testing.T) {

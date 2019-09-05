@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 type alter struct {

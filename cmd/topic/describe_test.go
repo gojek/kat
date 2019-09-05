@@ -1,10 +1,11 @@
 package topic
 
 import (
+	"testing"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/testutil"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestDescribe(t *testing.T) {

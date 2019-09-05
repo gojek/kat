@@ -1,9 +1,10 @@
 package topic
 
 import (
+	"testing"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/testutil"
-	"testing"
 )
 
 func TestList(t *testing.T) {

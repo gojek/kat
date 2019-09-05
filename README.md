@@ -69,6 +69,14 @@ Help
 ### Future Scope
 - Add support for more admin operations
 
+## TODO
+Refactoring
+* [ ] move sarama deps, and building command/running to a baseCmd and compose it in all cmds
+* [ ] get rid of topicutil, move functions to topics struct (group behaviour: list, delete, create, update)
+* [ ] mirror, all commands should use same flags (can use config file for default value so we can pass less flags while running)
+* [ ] inject custom interface with only required functionality instead of saramaCli ()
+* [ ] add golangci lint
+* [ ] add make file (vet,lint,goimports,test with race)
 
 ## License
 
@@ -89,4 +97,8 @@ limitations under the License.
 ```
 
 Note
+<<<<<<< HEAD
 - update the latest release version to `https://github.com/gojek/homebrew-tap` 
+=======
+- update the latest release version to `https://github.com/gojek/homebrew-tap`
+>>>>>>> Run goimports, add list of refactoring todos
