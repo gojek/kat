@@ -89,6 +89,7 @@ func (m *mirror) mirrorTopicConfigs() {
 		if topicPresent(topic, destinationClusterTopics) == false {
 			if m.createTopic == "true" {
 				topicDetail := sourceTopicsDetails[topic]
+				topicDetail.ReplicaAssignment = nil
 				topicutil.CreateTopic(m.destinationAdmin, topic, &topicDetail, false)
 				continue
 
