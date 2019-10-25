@@ -77,6 +77,9 @@ Refactoring
 * [ ] inject custom interface with only required functionality instead of saramaCli ()
 * [ ] add golangci lint
 * [ ] add make file (vet,lint,goimports,test with race)
+* [ ] introduce logrus with log levels
+* [ ] helper for executing shell commands
+* [ ] beautify the UI for show config command
 
 ## License
 

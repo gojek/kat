@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/gojekfarm/kat/util"
 	"os"
 
-	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/cmd/mirror"
-	"github.com/gojekfarm/kat/cmd/topic"
 	"github.com/spf13/cobra"
 )
 
-var Admin sarama.ClusterAdmin
+var Cobra *util.CobraUtil
 
 var cliCmd = &cobra.Command{
 	Use:     "./kat",
@@ -18,9 +17,17 @@ var cliCmd = &cobra.Command{
 	Version: fmt.Sprintf("%s (Commit: %s)", "0.0.1", "n/a"),
 }
 
+func LoadCobra(cmd *cobra.Command, args []string) {
+	Cobra = util.NewCobraUtil(cmd)
+}
+
+func ClearCobra(cmd *cobra.Command, args []string) {
+	Cobra = nil
+}
+
 func init() {
 	cobra.OnInitialize()
-	cliCmd.AddCommand(topic.TopicCmd)
+	cliCmd.AddCommand(topicCmd)
 	cliCmd.AddCommand(mirror.MirrorCmd)
 }
 
