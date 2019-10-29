@@ -1,7 +1,6 @@
-package testutil
+package pkg
 
 import (
-	"github.com/gojekfarm/kat/pkg"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -9,19 +8,19 @@ type MockTopicCli struct {
 	mock.Mock
 }
 
-func (m *MockTopicCli) List() (map[string]pkg.TopicDetail, error) {
+func (m *MockTopicCli) List() (map[string]TopicDetail, error) {
 	args := m.Called()
-	return args.Get(0).(map[string]pkg.TopicDetail), args.Error(1)
+	return args.Get(0).(map[string]TopicDetail), args.Error(1)
 }
 
-func (m *MockTopicCli) Describe(topics []string) ([]*pkg.TopicMetadata, error) {
+func (m *MockTopicCli) Describe(topics []string) ([]*TopicMetadata, error) {
 	args := m.Called(topics)
-	return args.Get(0).([]*pkg.TopicMetadata), args.Error(1)
+	return args.Get(0).([]*TopicMetadata), args.Error(1)
 }
 
-func (m *MockTopicCli) ShowConfig(topic string) ([]pkg.ConfigEntry, error) {
+func (m *MockTopicCli) ShowConfig(topic string) ([]ConfigEntry, error) {
 	args := m.Called(topic)
-	return args.Get(0).([]pkg.ConfigEntry), args.Error(1)
+	return args.Get(0).([]ConfigEntry), args.Error(1)
 }
 
 func (m *MockTopicCli) UpdateConfig(topics []string, configMap map[string]*string, validateOnly bool) error {

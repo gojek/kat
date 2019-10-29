@@ -1,21 +1,20 @@
 package cmd
 
 import (
+	"github.com/gojekfarm/kat/pkg"
 	"testing"
-
-	"github.com/gojekfarm/kat/testutil"
 )
 
 func TestAlter(t *testing.T) {
 	clearTopicCli(nil, nil)
-	TopicCli = &testutil.MockTopicCli{}
+	TopicCli = &pkg.MockTopicCli{}
 	topics := []string{"topic1", "topic2"}
 	config := "key1=val1"
 	value := "val1"
 	configMap := map[string]*string{"key1": &value}
-	TopicCli.(*testutil.MockTopicCli).On("UpdateConfig", topics, configMap, false).Return(nil).Times(1)
+	TopicCli.(*pkg.MockTopicCli).On("UpdateConfig", topics, configMap, false).Return(nil).Times(1)
 	a := alterConfig{topics: topics, config: config}
 	a.alterConfig()
-	TopicCli.(*testutil.MockTopicCli).AssertExpectations(t)
+	TopicCli.(*pkg.MockTopicCli).AssertExpectations(t)
 			clearTopicCli(nil, nil)
 }

@@ -1,16 +1,16 @@
 package topicutil
 
 import (
+	"github.com/gojekfarm/kat/pkg"
 	"testing"
 
 	"github.com/Shopify/sarama"
-	"github.com/gojekfarm/kat/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestListAll(t *testing.T) {
-	admin := &testutil.MockClusterAdmin{}
+	admin := &pkg.MockClusterAdmin{}
 	topicDetails := make(map[string]sarama.TopicDetail)
 	topicDetails["topic1"] = sarama.TopicDetail{NumPartitions: 2, ReplicationFactor: 1}
 	admin.On("ListTopics").Return(topicDetails, nil)
@@ -22,7 +22,7 @@ func TestListAll(t *testing.T) {
 func TestDescribeTopicMetadata(t *testing.T) {
 	metadata := make([]*sarama.TopicMetadata, 1)
 	topics := []string{"topic1"}
-	admin := &testutil.MockClusterAdmin{}
+	admin := &pkg.MockClusterAdmin{}
 	admin.On("DescribeTopics", topics).Return(metadata, nil)
 	metadata[0] = &sarama.TopicMetadata{Name: "topic1"}
 	m := DescribeTopicMetadata(admin, []string{"topic1"})
@@ -31,7 +31,7 @@ func TestDescribeTopicMetadata(t *testing.T) {
 }
 
 func TestDescribeConfig(t *testing.T) {
-	admin := &testutil.MockClusterAdmin{}
+	admin := &pkg.MockClusterAdmin{}
 	configs := make([]sarama.ConfigEntry, 2)
 	configs[0] = sarama.ConfigEntry{Name: "retention.ms", Value: "120000"}
 	configs[1] = sarama.ConfigEntry{Name: "cleanup.policy", Value: "compact"}

@@ -1,16 +1,16 @@
 package mirror
 
 import (
+	"github.com/gojekfarm/kat/pkg"
 	"testing"
 
 	"github.com/Shopify/sarama"
-	"github.com/gojekfarm/kat/testutil"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestTopicConfigMirroredIfTopicExistsInDestination(t *testing.T) {
-	sourceAdmin := &testutil.MockClusterAdmin{}
-	destinationAdmin := &testutil.MockClusterAdmin{}
+	sourceAdmin := &pkg.MockClusterAdmin{}
+	destinationAdmin := &pkg.MockClusterAdmin{}
 	topicDetails := make(map[string]sarama.TopicDetail)
 	topicDetails["topic1"] = sarama.TopicDetail{NumPartitions: 2, ReplicationFactor: 1}
 	sourceAdmin.On("ListTopics").Return(topicDetails, nil)
@@ -22,8 +22,8 @@ func TestTopicConfigMirroredIfTopicExistsInDestination(t *testing.T) {
 }
 
 func TestTopicConfigIsNotMirroredIfTopicDoesNotExistsInDestination(t *testing.T) {
-	sourceAdmin := &testutil.MockClusterAdmin{}
-	destinationAdmin := &testutil.MockClusterAdmin{}
+	sourceAdmin := &pkg.MockClusterAdmin{}
+	destinationAdmin := &pkg.MockClusterAdmin{}
 	topicDetailsSrc := make(map[string]sarama.TopicDetail)
 	topicDetailsDest := make(map[string]sarama.TopicDetail)
 	topicDetailsSrc["topic1"] = sarama.TopicDetail{NumPartitions: 2, ReplicationFactor: 1}
@@ -37,8 +37,8 @@ func TestTopicConfigIsNotMirroredIfTopicDoesNotExistsInDestination(t *testing.T)
 }
 
 func TestTopicCreatedAndConfigMirrored(t *testing.T) {
-	sourceAdmin := &testutil.MockClusterAdmin{}
-	destinationAdmin := &testutil.MockClusterAdmin{}
+	sourceAdmin := &pkg.MockClusterAdmin{}
+	destinationAdmin := &pkg.MockClusterAdmin{}
 	topicDetailsSrc := make(map[string]sarama.TopicDetail)
 	topicDetailsDest := make(map[string]sarama.TopicDetail)
 	topicDetailsSrc["topic1"] = sarama.TopicDetail{NumPartitions: 2, ReplicationFactor: 1}
@@ -54,8 +54,8 @@ func TestTopicCreatedAndConfigMirrored(t *testing.T) {
 }
 
 func TestTopicPartitionCountNotMirrored(t *testing.T) {
-	sourceAdmin := &testutil.MockClusterAdmin{}
-	destinationAdmin := &testutil.MockClusterAdmin{}
+	sourceAdmin := &pkg.MockClusterAdmin{}
+	destinationAdmin := &pkg.MockClusterAdmin{}
 	topicDetails := make(map[string]sarama.TopicDetail)
 	topicDetails["topic1"] = sarama.TopicDetail{NumPartitions: 2, ReplicationFactor: 1}
 	sourceAdmin.On("ListTopics").Return(topicDetails, nil)
@@ -69,8 +69,8 @@ func TestTopicPartitionCountNotMirrored(t *testing.T) {
 }
 
 func TestTopicPartitionCountMirrored(t *testing.T) {
-	sourceAdmin := &testutil.MockClusterAdmin{}
-	destinationAdmin := &testutil.MockClusterAdmin{}
+	sourceAdmin := &pkg.MockClusterAdmin{}
+	destinationAdmin := &pkg.MockClusterAdmin{}
 	topicDetailsSrc := make(map[string]sarama.TopicDetail)
 	topicDetailsDest := make(map[string]sarama.TopicDetail)
 	cfgMap := make(map[string]*string)
