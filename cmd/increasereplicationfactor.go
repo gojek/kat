@@ -14,8 +14,8 @@ type increaseReplication struct {
 }
 
 var increaseReplicationFactorCmd = &cobra.Command{
-	Use:   "increase-replication-factor",
-	Short: "Increases the replication factor for the given topics by the given number",
+	Use:    "increase-replication-factor",
+	Short:  "Increases the replication factor for the given topics by the given number",
 	PreRun: loadTopicCli,
 	Run: func(command *cobra.Command, args []string) {
 		i := increaseReplication{topics: Cobra.GetTopicNames(), replicationFactor: Cobra.GetIntArg("replication-factor"), numOfBrokers: Cobra.GetIntArg("num-of-brokers"),

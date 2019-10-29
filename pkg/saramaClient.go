@@ -5,15 +5,15 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-type saramaClient struct {
+type SaramaClient struct {
 	sarama.ClusterAdmin
 }
 
-func NewSaramaClient(admin sarama.ClusterAdmin) *saramaClient {
-	return &saramaClient{admin}
+func NewSaramaClient(admin sarama.ClusterAdmin) *SaramaClient {
+	return &SaramaClient{admin}
 }
 
-func (s *saramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
+func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 	topics, err := s.ListTopics()
 	if err != nil {
 		fmt.Printf("Err while retrieving Topic details: %detail\n", err)
@@ -33,7 +33,7 @@ func (s *saramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 	return topicDetails, err
 }
 
-func (s *saramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error) {
+func (s *SaramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error) {
 	metadata, err := s.DescribeTopics(topics)
 	if err != nil {
 		fmt.Printf("Err while retrieving Topic metadata: %v\n", err)
@@ -64,7 +64,7 @@ func (s *saramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata,
 	return topicMetadata, nil
 }
 
-func (s *saramaClient) UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error {
+func (s *SaramaClient) UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error {
 	err := s.AlterConfig(sarama.ConfigResourceType(resourceType), name, entries, validateOnly)
 	if err != nil {
 		fmt.Printf("Error while changing config for topic %v - %v\n", name, err)
@@ -72,11 +72,11 @@ func (s *saramaClient) UpdateConfig(resourceType int, name string, entries map[s
 	return err
 }
 
-func (s *saramaClient) GetTopicResourceType() int {
+func (s *SaramaClient) GetTopicResourceType() int {
 	return int(sarama.TopicResource)
 }
 
-func (s *saramaClient) ShowConfig(resource ConfigResource) ([]ConfigEntry, error) {
+func (s *SaramaClient) ShowConfig(resource ConfigResource) ([]ConfigEntry, error) {
 	entries, err := s.DescribeConfig(sarama.ConfigResource{
 		Type:        sarama.ConfigResourceType(resource.Type),
 		Name:        resource.Name,

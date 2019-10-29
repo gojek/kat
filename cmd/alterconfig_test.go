@@ -16,5 +16,5 @@ func TestAlter(t *testing.T) {
 	a := alterConfig{topics: topics, config: config}
 	a.alterConfig()
 	TopicCli.(*pkg.MockTopicCli).AssertExpectations(t)
-			clearTopicCli(nil, nil)
+	clearTopicCli(nil, nil)
 }

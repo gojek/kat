@@ -20,4 +20,3 @@ func TestIncreaseReplicationFactor(t *testing.T) {
 	TopicCli.(*pkg.MockTopicCli).AssertExpectations(t)
 	clearTopicCli(nil, nil)
 }
-

@@ -30,4 +30,3 @@ func (m *MockKafkaClient) ShowConfig(resource ConfigResource) ([]ConfigEntry, er
 	args := m.Called(resource)
 	return args.Get(0).([]ConfigEntry), args.Error(1)
 }
-

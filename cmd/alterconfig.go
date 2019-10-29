@@ -13,8 +13,8 @@ type alterConfig struct {
 }
 
 var alterConfigCmd = &cobra.Command{
-	Use:   "alter",
-	Short: "alter the config for the given topics",
+	Use:    "alter",
+	Short:  "alter the config for the given topics",
 	PreRun: loadTopicCli,
 	Run: func(command *cobra.Command, args []string) {
 		a := alterConfig{config: Cobra.GetCmdArg("config"), topics: Cobra.GetTopicNames()}

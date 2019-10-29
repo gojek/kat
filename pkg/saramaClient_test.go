@@ -184,4 +184,3 @@ func TestSaramaClient_ShowConfigFailure(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 	admin.AssertExpectations(t)
 }
-

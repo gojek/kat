@@ -58,8 +58,7 @@ func (u *CobraUtil) GetTopicNames() []string {
 	return strings.Split(u.GetCmdArg("topics"), ",")
 }
 
-
-func (u *CobraUtil) GetBoolArg(argName string) bool{
+func (u *CobraUtil) GetBoolArg(argName string) bool {
 	strVal := u.GetCmdArg(argName)
 	val, err := strconv.ParseBool(strVal)
 	if err != nil {

@@ -13,7 +13,7 @@ func ListAll(admin sarama.ClusterAdmin) []string {
 	if topicDetails == nil {
 		return nil
 	}
-	for topic, _ := range topicDetails {
+	for topic := range topicDetails {
 		topicList = append(topicList, topic)
 	}
 	return topicList

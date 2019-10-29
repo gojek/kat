@@ -12,8 +12,8 @@ type describeTopic struct {
 }
 
 var describeTopicCmd = &cobra.Command{
-	Use:   "describe",
-	Short: "Describes the given topic",
+	Use:    "describe",
+	Short:  "Describes the given topic",
 	PreRun: loadTopicCli,
 	Run: func(command *cobra.Command, args []string) {
 		d := describeTopic{topics: Cobra.GetTopicNames()}
