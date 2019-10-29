@@ -7,7 +7,7 @@ jobs:
     steps:
     - checkout
     - setup_remote_docker:
-        docker_layer_caching: true
+        docker_layer_caching: false
     - restore_cache:
         keys:
         - vendor-pkg-{{ checksum "go.sum" }}
@@ -35,7 +35,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          docker_layer_caching: true
+          docker_layer_caching: false
       - restore_cache:
           keys:
             - vendor-pkg-{{ checksum "go.sum" }}
