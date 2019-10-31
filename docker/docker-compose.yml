@@ -1,0 +1,38 @@
+version: "3.6"
+
+services:
+  src-zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+    - 2182:2181
+
+  src-kafka:
+    image: wurstmeister/kafka:2.11-2.0.0
+    ports:
+    - 9094:9094
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: src-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://src-kafka:9092,OUTSIDE://localhost:9094
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    depends_on:
+    - src-zookeeper
+
+  dest-zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+    - 2183:2181
+
+  dest-kafka:
+    image: wurstmeister/kafka:2.11-2.0.0
+    ports:
+    - 9095:9095
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: dest-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://dest-kafka:9092,OUTSIDE://localhost:9095
+      KAFKA_LISTENERS: INSIDE://:9092,OUTSIDE://:9095
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    depends_on:
+    - dest-zookeeper

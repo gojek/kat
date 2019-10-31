@@ -12,7 +12,7 @@ import (
 var Cobra *util.CobraUtil
 
 var cliCmd = &cobra.Command{
-	Use:     "./kat",
+	Use:     "kat",
 	Short:   "Tool used for admin activities against specified kafka brokers",
 	Version: fmt.Sprintf("%s (Commit: %s)", "0.0.1", "n/a"),
 }
