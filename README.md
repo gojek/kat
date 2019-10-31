@@ -14,6 +14,8 @@
 1. ```go get -u github.com/gojekfarm/kat```
 2. Build the project -- 
 ```make```
+3. Multiple kafka cluster can be created in local environment using docker-compose
+```docker-compose up -d```
 
 #### Using Homebrew
 
@@ -61,6 +63,9 @@ Mirror topic configs from source to destination cluster
 
 ```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --create-topics```
 
+-To increase the partition count
+
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --increase-partitions```
 
 Help
 
@@ -99,9 +104,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-Note
-<<<<<<< HEAD
+
 - update the latest release version to `https://github.com/gojek/homebrew-tap` 
-=======
-- update the latest release version to `https://github.com/gojek/homebrew-tap`
->>>>>>> Run goimports, add list of refactoring todos
+

@@ -82,7 +82,7 @@ func (m *mirror) mirrorTopicConfigs() {
 	destinationClusterTopics := topicutil.ListAll(m.destinationAdmin)
 	destinationTopicDetails := topicutil.ListTopicDetails(m.destinationAdmin)
 	sourceTopicsDetails := topicutil.ListTopicDetails(m.sourceAdmin)
-	if destinationClusterTopics == nil || destinationTopicDetails == nil || sourceTopicsDetails == nil {
+	if sourceTopicsDetails == nil {
 		return
 	}
 	for _, topic := range m.topics {
