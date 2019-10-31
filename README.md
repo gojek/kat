@@ -15,7 +15,7 @@
 2. Build the project -- 
 ```make```
 3. Multiple kafka cluster can be created in local environment using docker-compose
-```docker-compose-up-d```
+```docker-compose up -d```
 
 #### Using Homebrew
 
