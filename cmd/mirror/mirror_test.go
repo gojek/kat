@@ -16,6 +16,11 @@ func TestTopicConfigMirroredIfTopicExistsInDestination(t *testing.T) {
 	sourceAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("AlterConfig", sarama.TopicResource, "topic1", mock.AnythingOfType("map[string]*string"), false).Return(nil)
+	sourceAdmin.On("DescribeConfig", mock.Anything).Return([]sarama.ConfigEntry{{
+		Name:  "retention.ms",
+		Value: "10000",
+	}}, nil)
+	destinationAdmin.On("DescribeConfig", mock.Anything).Return([]sarama.ConfigEntry{}, nil)
 	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: false}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertExpectations(t)
@@ -53,7 +58,7 @@ func TestTopicCreatedAndConfigMirrored(t *testing.T) {
 	sourceAdmin.AssertExpectations(t)
 }
 
-func TestTopicPartitionCountNotMirrored(t *testing.T) {
+func TestTopicPartitionCountNotMirroredAndAlterConfigNotCalled(t *testing.T) {
 	sourceAdmin := &pkg.MockClusterAdmin{}
 	destinationAdmin := &pkg.MockClusterAdmin{}
 	topicDetails := make(map[string]sarama.TopicDetail)
@@ -61,11 +66,13 @@ func TestTopicPartitionCountNotMirrored(t *testing.T) {
 	sourceAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("ListTopics").Return(topicDetails, nil)
 	destinationAdmin.On("AlterConfig", sarama.TopicResource, "topic1", mock.AnythingOfType("map[string]*string"), false).Return(nil)
+	sourceAdmin.On("DescribeConfig", mock.Anything).Return([]sarama.ConfigEntry{}, nil)
+	destinationAdmin.On("DescribeConfig", mock.Anything).Return([]sarama.ConfigEntry{}, nil)
 	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: true}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertNotCalled(t, "CreatePartitions", "topic1", 2, nil, false)
 	sourceAdmin.AssertExpectations(t)
-	destinationAdmin.AssertExpectations(t)
+	destinationAdmin.AssertNotCalled(t, "AlterConfig")
 }
 
 func TestTopicPartitionCountMirrored(t *testing.T) {
@@ -82,6 +89,11 @@ func TestTopicPartitionCountMirrored(t *testing.T) {
 	destinationAdmin.On("ListTopics").Return(topicDetailsDest, nil)
 	destinationAdmin.On("AlterConfig", sarama.TopicResource, "topic1", cfgMap, false).Return(nil)
 	destinationAdmin.On("CreatePartitions", "topic1", int32(10), [][]int32{}, false).Return(nil)
+	sourceAdmin.On("DescribeConfig", mock.Anything).Return([]sarama.ConfigEntry{{
+		Name:  "retention.ms",
+		Value: "10000",
+	}}, nil)
+	destinationAdmin.On("DescribeConfig", mock.Anything).Return([]sarama.ConfigEntry{}, nil)
 	m := mirror{sourceAdmin: sourceAdmin, destinationAdmin: destinationAdmin, topics: []string{"topic1"}, topicConfig: map[string]string{"topic1": "retention.ms=200000"}, partitions: true}
 	m.mirrorTopicConfigs()
 	destinationAdmin.AssertExpectations(t)
