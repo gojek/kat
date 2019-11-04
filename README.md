@@ -18,7 +18,7 @@
 ```docker-compose up -d```
 
 #### Using Homebrew
-
+    
 ```
 brew tap gojek/stable
 brew install kat
@@ -66,6 +66,10 @@ Mirror topic configs from source to destination cluster
 -To increase the partition count
 
 ```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --increase-partitions```
+
+-To dry run and see the changes before applying the mirror command, 
+
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --increase-partitions --dry-run```
 
 Help
 

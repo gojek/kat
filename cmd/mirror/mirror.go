@@ -2,11 +2,14 @@ package mirror
 
 import (
 	"fmt"
-
 	"github.com/Shopify/sarama"
 	"github.com/gojekfarm/kat/topicutil"
 	"github.com/gojekfarm/kat/util"
+	"github.com/olekukonko/tablewriter"
+	"github.com/r3labs/diff"
 	"github.com/spf13/cobra"
+	"os"
+	"reflect"
 )
 
 type mirror struct {
@@ -16,6 +19,7 @@ type mirror struct {
 	topicConfig      map[string]string
 	createTopic      bool
 	partitions       bool
+	dryRun           bool
 }
 
 var MirrorCmd = &cobra.Command{
@@ -27,7 +31,9 @@ var MirrorCmd = &cobra.Command{
 			destinationAdmin: u.GetAdminClient("destination-broker-ips"),
 			topics:           u.GetTopicNames(),
 			createTopic:      u.GetBoolArg("create-topics"),
-			partitions:       u.GetBoolArg("increase-partitions")}
+			partitions:       u.GetBoolArg("increase-partitions"),
+			dryRun:           u.GetBoolArg("dry-run"),
+		}
 		//TODO: Read configs to be mirrored from a json config file. Currently, everything is mirrored
 		ok := m.getTopicConfigs()
 		if !ok {
@@ -47,6 +53,7 @@ func init() {
 	MirrorCmd.PersistentFlags().Bool("increase-partitions", false, "Increase the partition count of topics on destination cluster")
 	MirrorCmd.MarkPersistentFlagRequired("source-broker-ips")
 	MirrorCmd.MarkPersistentFlagRequired("destination-broker-ips")
+	MirrorCmd.PersistentFlags().Bool("dry-run", false, "shows only the configs which gets updated")
 }
 
 func (m *mirror) getTopicList() bool {
@@ -79,6 +86,7 @@ func (m *mirror) getTopicConfigs() bool {
 }
 
 func (m *mirror) mirrorTopicConfigs() {
+	output := make([]topicutil.Output, 0)
 	destinationClusterTopics := topicutil.ListAll(m.destinationAdmin)
 	destinationTopicDetails := topicutil.ListTopicDetails(m.destinationAdmin)
 	sourceTopicsDetails := topicutil.ListTopicDetails(m.sourceAdmin)
@@ -90,7 +98,8 @@ func (m *mirror) mirrorTopicConfigs() {
 			if m.createTopic {
 				topicDetail := sourceTopicsDetails[topic]
 				topicDetail.ReplicaAssignment = nil
-				topicutil.CreateTopic(m.destinationAdmin, topic, &topicDetail, false)
+				topicCreateOutput := topicutil.CreateTopic(m.destinationAdmin, topic, &topicDetail, false, m.dryRun)
+				output = append(output, topicCreateOutput...)
 				continue
 
 			} else {
@@ -98,26 +107,42 @@ func (m *mirror) mirrorTopicConfigs() {
 				continue
 			}
 		}
-		m.alterTopicConfigs(topic)
+
+		equal, diff := m.topicConfigEquals(topic)
+		if !equal {
+			topicUpdateOutput := m.alterTopicConfigs(topic, diff, m.dryRun)
+			output = append(output, topicUpdateOutput...)
+		}
 		if m.partitions {
 			m.increasePartitions(topic, sourceTopicsDetails[topic].NumPartitions, destinationTopicDetails[topic].NumPartitions)
 		}
 	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Topic", "Action", "Configs", "Status"})
+
+	for _, v := range output {
+		table.Append(v.Row())
+	}
+	table.Render()
 }
 
-func (m *mirror) alterTopicConfigs(topic string) {
+func (m *mirror) alterTopicConfigs(topic string, diff diff.Changelog, dryRun bool) []topicutil.Output {
 	configMap := topicutil.ConfigMap(m.topicConfig[topic])
+	if dryRun {
+		return []topicutil.Output{{Topic: topic, Action: topicutil.Update, ConfigChange: fmt.Sprint(diff), Status: topicutil.DryRun}}
+	}
+
 	err := m.destinationAdmin.AlterConfig(sarama.TopicResource, topic, configMap, false)
 	if err != nil {
-		fmt.Printf("Err while altering config for topic - %v: %v\n", topic, err)
-	} else {
-		fmt.Printf("Config was successfully altered for topic - %v\n", topic)
+		return []topicutil.Output{{Topic: topic, Action: topicutil.Update, ConfigChange: fmt.Sprint(diff), Status: topicutil.Failure}}
 	}
+	return []topicutil.Output{{Topic: topic, Action: topicutil.Update, ConfigChange: fmt.Sprint(diff), Status: topicutil.Success}}
+
 }
 
 func (m *mirror) increasePartitions(topic string, srcNoOfPartitions int32, destNoOfPartitions int32) {
 	if srcNoOfPartitions == destNoOfPartitions {
-		fmt.Printf("Partition count not increased as it is same on both clusters \n")
 		return
 	}
 	err := m.destinationAdmin.CreatePartitions(topic, srcNoOfPartitions, [][]int32{}, false)
@@ -135,4 +160,20 @@ func topicPresent(topic string, destinationClusterTopics []string) bool {
 		}
 	}
 	return false
+}
+
+func (m *mirror) topicConfigEquals(topic string) (bool, diff.Changelog) {
+	sourceTopicConfigMap := m.getConfigMap(topicutil.DescribeConfig(m.sourceAdmin, topic))
+	destinationTopicConfigMap := m.getConfigMap(topicutil.DescribeConfig(m.destinationAdmin, topic))
+	isConfigSame := reflect.DeepEqual(sourceTopicConfigMap, destinationTopicConfigMap)
+	changeLog, _ := diff.Diff(sourceTopicConfigMap, destinationTopicConfigMap)
+	return isConfigSame, changeLog
+}
+
+func (m *mirror) getConfigMap(configList []sarama.ConfigEntry) map[string]string {
+	configMap := make(map[string]string)
+	for _, config := range configList {
+		configMap[config.Name] = config.Value
+	}
+	return configMap
 }
