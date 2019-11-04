@@ -41,6 +41,21 @@ func DescribeConfig(admin sarama.ClusterAdmin, topic string) []sarama.ConfigEntr
 	return configs
 }
 
+func DescribeFilteredConfig(admin sarama.ClusterAdmin, topic string, excludedConfigs map[string]interface{}) []sarama.ConfigEntry {
+	configs := DescribeConfig(admin, topic)
+	if configs == nil {
+		return nil
+	}
+	filteredConfigs := []sarama.ConfigEntry{}
+
+	for _, config := range configs {
+		if _, keyExists := excludedConfigs[config.Name]; !keyExists {
+			filteredConfigs = append(filteredConfigs, config)
+		}
+	}
+	return filteredConfigs
+}
+
 func ConfigString(configs []sarama.ConfigEntry, topic string) string {
 	var topicConfig []string
 	for _, config := range configs {
@@ -71,14 +86,14 @@ func ConfigMap(configStr string) map[string]*string {
 
 func CreateTopic(admin sarama.ClusterAdmin, topic string, detail *sarama.TopicDetail, validateOnly bool, dryRun bool) []Output {
 	if dryRun {
-		op := Output{Topic: topic, Action: Create, ConfigChange: toConfigJSON(detail.ConfigEntries), Status: DryRun}
+		op := Output{Topic: topic, Action: Create, ConfigChange: toConfigJSON(detail.ConfigEntries), OldPartitionCount: detail.NumPartitions, NewPartitionCount: detail.NumPartitions, Status: DryRun}
 		return []Output{op}
 	}
 	err := admin.CreateTopic(topic, detail, validateOnly)
 	if err != nil {
-		op := Output{Topic: topic, Action: Create, ConfigChange: toConfigJSON(detail.ConfigEntries), Status: Failure}
+		op := Output{Topic: topic, Action: Create, ConfigChange: toConfigJSON(detail.ConfigEntries), OldPartitionCount: detail.NumPartitions, NewPartitionCount: detail.NumPartitions, Status: Failure, Reason: err.Error()}
 		return []Output{op}
 	}
-	op := Output{Topic: topic, Action: Create, ConfigChange: toConfigJSON(detail.ConfigEntries), Status: Success}
+	op := Output{Topic: topic, Action: Create, ConfigChange: toConfigJSON(detail.ConfigEntries), OldPartitionCount: detail.NumPartitions, NewPartitionCount: detail.NumPartitions, Status: Success}
 	return []Output{op}
 }

@@ -71,6 +71,11 @@ Mirror topic configs from source to destination cluster
 
 ```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --increase-partitions --dry-run```
 
+-To exclude mirroring certain configs, 
+
+```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --exclude-configs "follower.replication.throttled.replicas,leader.replication.throttled.replicas"
+```
+
 Help
 
 ```./kat --help```

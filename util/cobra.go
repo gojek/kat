@@ -25,7 +25,7 @@ func (u *CobraUtil) GetAdminClient(argName string) sarama.ClusterAdmin {
 
 	admin, err := sarama.NewClusterAdmin(addr, cfg)
 	if err != nil {
-		fmt.Printf("Err on creating admin client: %v\n", err)
+		fmt.Printf("Err on creating admin client for %s: %v\n", addr, err)
 		os.Exit(1)
 	}
 
@@ -52,6 +52,25 @@ func (u *CobraUtil) GetIntArg(argName string) int {
 		os.Exit(1)
 	}
 	return val
+}
+
+func (u *CobraUtil) GetStringSliceArg(argName string) []string {
+	stringSlice, err := u.cmd.Flags().GetStringSlice(argName)
+	if err != nil {
+		fmt.Printf("Error while retrieving string slice argument: %v\n", err)
+		os.Exit(1)
+	}
+	return stringSlice
+
+}
+
+func (u *CobraUtil) GetStringSet(argName string) map[string]interface{} {
+	stringSlice := u.GetStringSliceArg(argName)
+	stringSet := make(map[string]interface{})
+	for _, value := range stringSlice {
+		stringSet[strings.TrimSpace(value)] = true
+	}
+	return stringSet
 }
 
 func (u *CobraUtil) GetTopicNames() []string {
