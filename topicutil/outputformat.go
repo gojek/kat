@@ -1,16 +1,26 @@
 package topicutil
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type Output struct {
-	Topic        string
-	Action       Action
-	ConfigChange string
-	Status       Status
+	Topic             string
+	Action            Action
+	ConfigChange      string
+	OldPartitionCount int32
+	NewPartitionCount int32
+	Status            Status
+	Reason            string
 }
 
 func (o Output) Row() []string {
-	return []string{o.Topic, o.Action.String(), o.ConfigChange, o.Status.String()}
+	return []string{o.Topic, o.Action.String(), o.ConfigChange, fmt.Sprint(o.OldPartitionCount), fmt.Sprint(o.NewPartitionCount), o.Status.String(), o.Reason}
+}
+
+func (o Output) Headers() []string {
+	return []string{"Topic", "Action", "Configs", "OldPartitionCount", "NewPartitionCount", "Status", "Reason"}
 }
 
 func toConfigJSON(configs map[string]*string) string {
