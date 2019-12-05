@@ -13,6 +13,11 @@ func (m *MockTopicCli) List() (map[string]TopicDetail, error) {
 	return args.Get(0).(map[string]TopicDetail), args.Error(1)
 }
 
+func (m *MockTopicCli) Get(regex string) ([]string, error) {
+	args := m.Called(regex)
+	return args.Get(0).([]string), args.Error(1)
+}
+
 func (m *MockTopicCli) Describe(topics []string) ([]*TopicMetadata, error) {
 	args := m.Called(topics)
 	return args.Get(0).([]*TopicMetadata), args.Error(1)
@@ -28,7 +33,12 @@ func (m *MockTopicCli) UpdateConfig(topics []string, configMap map[string]*strin
 	return args.Error(0)
 }
 
-func (m *MockTopicCli) IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers int, kafkaPath, zookeeper string) error {
-	args := m.Called(topics, replicationFactor, numOfBrokers, kafkaPath, zookeeper)
+func (m *MockTopicCli) IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error {
+	args := m.Called(topics, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle, zookeeper)
+	return args.Error(0)
+}
+
+func (m *MockTopicCli) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error {
+	args := m.Called(topics, batch, timeoutPerBatchInS, pollIntervalInS, throttle, brokerList, zookeeper)
 	return args.Error(0)
 }

@@ -6,11 +6,14 @@ import (
 )
 
 type increaseReplication struct {
-	topics            []string
-	replicationFactor int
-	numOfBrokers      int
-	kafkaPath         string
-	zookeeper         string
+	topics             string
+	replicationFactor  int
+	numOfBrokers       int
+	zookeeper          string
+	batch              int
+	timeoutPerBatchInS int
+	pollIntervalInS    int
+	throttle           int
 }
 
 var increaseReplicationFactorCmd = &cobra.Command{
@@ -18,30 +21,46 @@ var increaseReplicationFactorCmd = &cobra.Command{
 	Short:  "Increases the replication factor for the given topics by the given number",
 	PreRun: loadTopicCli,
 	Run: func(command *cobra.Command, args []string) {
-		i := increaseReplication{topics: Cobra.GetTopicNames(), replicationFactor: Cobra.GetIntArg("replication-factor"), numOfBrokers: Cobra.GetIntArg("num-of-brokers"),
-			kafkaPath: Cobra.GetCmdArg("kafka-path"), zookeeper: Cobra.GetCmdArg("zookeeper")}
+		i := increaseReplication{topics: Cobra.GetCmdArg("topics"), replicationFactor: Cobra.GetIntArg("replication-factor"), numOfBrokers: Cobra.GetIntArg("num-of-brokers"),
+			zookeeper: Cobra.GetCmdArg("zookeeper"), batch: Cobra.GetIntArg("batch"),
+			timeoutPerBatchInS: Cobra.GetIntArg("timeout-per-batch"), pollIntervalInS: Cobra.GetIntArg("status-poll-interval"),
+			throttle: Cobra.GetIntArg("throttle")}
 		i.increaseReplicationFactor()
 	},
 	PostRun: clearTopicCli,
 }
 
 func init() {
-	increaseReplicationFactorCmd.PersistentFlags().StringP("topics", "t", "", "Comma separated list of topic names to describe")
+	increaseReplicationFactorCmd.PersistentFlags().StringP("topics", "t", "", "Regex to match the topics that need increase in replication factor. eg: \".*\", \"test-.*-topic\", \"topic1|topic2\"")
 	increaseReplicationFactorCmd.PersistentFlags().StringP("zookeeper", "z", "", "Comma separated list of zookeeper ips")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("replication-factor", "r", 0, "New Replication Factor")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("num-of-brokers", "n", 0, "Number of brokers in the cluster")
-	increaseReplicationFactorCmd.PersistentFlags().StringP("kafka-path", "p", "", "Path to the kafka executable")
+	increaseReplicationFactorCmd.PersistentFlags().IntP("batch", "", 1, "Batch size to split reassignment")
+	increaseReplicationFactorCmd.PersistentFlags().IntP("timeout-per-batch", "", 300, "Timeout for reassignment per batch in seconds")
+	increaseReplicationFactorCmd.PersistentFlags().IntP("status-poll-interval", "", 5, "Interval in seconds for polling for reassignment status")
+	increaseReplicationFactorCmd.PersistentFlags().IntP("throttle", "", 10000000, "Throttle for reassignment in bytes/sec")
 	increaseReplicationFactorCmd.MarkPersistentFlagRequired("topics")
 	increaseReplicationFactorCmd.MarkPersistentFlagRequired("zookeeper")
 	increaseReplicationFactorCmd.MarkPersistentFlagRequired("replication-factor")
 	increaseReplicationFactorCmd.MarkPersistentFlagRequired("num-of-brokers")
-	increaseReplicationFactorCmd.MarkPersistentFlagRequired("kafka-path")
 }
 
 func (i *increaseReplication) increaseReplicationFactor() {
-	err := TopicCli.IncreaseReplicationFactor(i.topics, i.replicationFactor, i.numOfBrokers, i.kafkaPath, i.zookeeper)
+	topics, err := TopicCli.Get(i.topics)
+	if err != nil {
+		fmt.Printf("Error while filtering topics - %v\n", err)
+		return
+	}
+
+	if len(topics) == 0 {
+		fmt.Printf("Did not find any topic matching - %v\n", i.topics)
+		return
+	}
+
+	err = TopicCli.IncreaseReplicationFactor(topics, i.replicationFactor, i.numOfBrokers, i.batch, i.timeoutPerBatchInS, i.pollIntervalInS, i.throttle, i.zookeeper)
 	if err != nil {
 		fmt.Printf("Error while increasing replication factor: %v\n", err)
 		return
 	}
+	fmt.Println("Successfully increased replication factor")
 }

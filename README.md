@@ -6,6 +6,7 @@
 - List topics
 - Describe topics
 - Increase replication factor of existing topics
+- Reassign partitions for topics
 - Show Config for topics
 - Alter Config for topics
 - Mirror topic configurations from source to destination cluster
@@ -25,31 +26,35 @@ brew install kat
 ```
 
 ### Usage
-List all topics in a kafka cluster
+*List all topics in a kafka cluster*
 
 ```./kat topic list --broker-list "broker1,broker2"```
 
-List all topics with a particular replication factor
+*List all topics with a particular replication factor*
 
 ```./kat topic list --broker-list "broker1,broker2" --replication-factor <r>```
 
-Describe topics
+*Describe topics*
 
 ```./kat topic describe --broker-list "broker1,broker2" --topics "topic1,topic2"```
 
-Increase replication factor for topics
+*Increase replication factor for topics*
 
-```./kat topic increase-replication-factor --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1,topic2" --replication-factor <r> --num-of-brokers <n> --kafka-path </path/to/kafka/binary>```
+```./kat topic increase-replication-factor --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1|topic2.*" --replication-factor <r> --num-of-brokers <n> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>```
 
-Show Config for topics
+*Reassign Partitions for topics*
+
+```./kat topic reassign-partitions --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1|topic2.*" --broker-ids <i> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>```
+
+*Show Config for topics*
 
 ```./kat topic config show --topics "topic1,topic2" --broker-list "broker1,broker2"```
 
-Alter Config for topics
+*Alter Config for topics*
 
 ```./kat topic config alter --topics "topic1,topic2" --broker-list "broker1,broker2" --config "retention.ms=500000000"```
 
-Mirror topic configs from source to destination cluster
+*Mirror topic configs from source to destination cluster*
 
 - Specify topics to mirror.
 
@@ -76,9 +81,21 @@ Mirror topic configs from source to destination cluster
 ```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --exclude-configs "follower.replication.throttled.replicas,leader.replication.throttled.replicas"
 ```
 
-Help
+*Help*
 
 ```./kat --help```
+
+```./kat <command> --help``` will list all the configs, their meanings and defaults per given command
+
+### Partition Reassignment
+```./kat topic reassign-partitions --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1|topic2.*" --broker-ids <i> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>```
+
+This command reassigns partitions for the given topics among the passed broker ids. This can be very time consuming, if run during the busy hours of the kafka cluster, and it is not straight forward to kill the process and rollback.
+
+Hence the command accepts a batch argument with a default of 1, which will split the topics passed into batches of the given number and run the reassignment per batch. Only if a batch completes successfully within the given timeout - `timeout-per-batch`, will the next batch start.
+The status of reassignment is checked every `poll-interval` seconds until the `timeout-per-batch` exceeds. In the event of failure of any batch, the command terminates. Only the topics in the failed batch need to be debugged/rolled back.
+
+All the rollback and reassignment json files are stored in /tmp path, one file per batch for each of rollback and reassignment. In case of any failure, running the `kafka-reassign-partitions` by passing the rollback.json for the failed batch will restore the state of those partitions.
 
 ### Future Scope
 - Add support for more admin operations

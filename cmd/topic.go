@@ -29,6 +29,7 @@ func init() {
 	topicCmd.AddCommand(listTopicCmd)
 	topicCmd.AddCommand(describeTopicCmd)
 	topicCmd.AddCommand(increaseReplicationFactorCmd)
+	topicCmd.AddCommand(reassignPartitionsCmd)
 	topicCmd.AddCommand(configCmd)
 
 }
