@@ -38,29 +38,29 @@ func NewPartition(zookeeper string) PartitionCli {
 		executor:  &util.Executor{},
 		io:        &util.IO{},
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
-			topicsToMoveJsonFile: "/tmp/topics-to-move-%d.json",
-			reassignmentJsonFile: "/tmp/reassignment-%d.json",
-			rollbackJsonFile:     "/tmp/rollback-%d.json",
+			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
+			reassignmentJSONFile: "/tmp/reassignment-%d.json",
+			rollbackJSONFile:     "/tmp/rollback-%d.json",
 		},
 	}
 }
 
 type kafkaPartitionReassignment struct {
-	topicsToMoveJsonFile string
-	reassignmentJsonFile string
-	rollbackJsonFile     string
+	topicsToMoveJSONFile string
+	reassignmentJSONFile string
+	rollbackJSONFile     string
 }
 
-func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchId int) (string, []string) {
-	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--broker-list", brokerList, "--topics-to-move-json-file", fmt.Sprintf(k.topicsToMoveJsonFile, batchId), "--generate"}
+func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchID int) (string, []string) {
+	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--broker-list", brokerList, "--topics-to-move-json-file", fmt.Sprintf(k.topicsToMoveJSONFile, batchID), "--generate"}
 }
 
-func (k *kafkaPartitionReassignment) execute(zookeeper string, batchId, throttle int) (string, []string) {
-	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--reassignment-json-file", fmt.Sprintf(k.reassignmentJsonFile, batchId), "--throttle", strconv.FormatInt(int64(throttle), 10), "--execute"}
+func (k *kafkaPartitionReassignment) execute(zookeeper string, batchID, throttle int) (string, []string) {
+	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--reassignment-json-file", fmt.Sprintf(k.reassignmentJSONFile, batchID), "--throttle", strconv.FormatInt(int64(throttle), 10), "--execute"}
 }
 
-func (k *kafkaPartitionReassignment) verify(zookeeper string, batchId int) (string, []string) {
-	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--reassignment-json-file", fmt.Sprintf(k.reassignmentJsonFile, batchId), "--verify"}
+func (k *kafkaPartitionReassignment) verify(zookeeper string, batchID int) (string, []string) {
+	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--reassignment-json-file", fmt.Sprintf(k.reassignmentJSONFile, batchID), "--verify"}
 }
 
 func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
@@ -71,12 +71,12 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 	}
 
 	for id, batch := range batches {
-		err := p.createTopicsToMoveJson(batch, id)
+		err := p.createTopicsToMoveJSON(batch, id)
 		if err != nil {
 			return err
 		}
 
-		err = p.generateReassignmentAndRollbackJson(brokerList, id)
+		err = p.generateReassignmentAndRollbackJSON(brokerList, id)
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ func (t *topicsToMove) add(topic string) {
 	t.Topics = append(t.Topics, map[string]string{"topic": topic})
 }
 
-func (p *Partition) createTopicsToMoveJson(batch []string, batchId int) error {
+func (p *Partition) createTopicsToMoveJSON(batch []string, batchID int) error {
 	topicsToMoveStruct := topicsToMove{}
 	for _, topic := range batch {
 		topicsToMoveStruct.add(topic)
@@ -132,30 +132,30 @@ func (p *Partition) createTopicsToMoveJson(batch []string, batchId int) error {
 	if err != nil {
 		return err
 	}
-	err = p.WriteFile(fmt.Sprintf(p.topicsToMoveJsonFile, batchId), string(topicsData))
+	err = p.WriteFile(fmt.Sprintf(p.topicsToMoveJSONFile, batchID), string(topicsData))
 
 	return err
 }
 
-func (p *Partition) generateReassignmentAndRollbackJson(brokerList string, batchId int) error {
-	reassignmentData, err := p.Execute(p.generate(p.zookeeper, brokerList, batchId))
+func (p *Partition) generateReassignmentAndRollbackJSON(brokerList string, batchID int) error {
+	reassignmentData, err := p.Execute(p.generate(p.zookeeper, brokerList, batchID))
 	if err != nil {
 		return err
 	}
 
 	fullReassignmentOutput := strings.Split(reassignmentData.String(), "\n")
-	err = p.WriteFile(fmt.Sprintf(p.rollbackJsonFile, batchId), fullReassignmentOutput[1])
+	err = p.WriteFile(fmt.Sprintf(p.rollbackJSONFile, batchID), fullReassignmentOutput[1])
 	if err != nil {
 		return err
 	}
 
-	err = p.WriteFile(fmt.Sprintf(p.reassignmentJsonFile, batchId), fullReassignmentOutput[4])
+	err = p.WriteFile(fmt.Sprintf(p.reassignmentJSONFile, batchID), fullReassignmentOutput[4])
 
 	return err
 }
 
-func (p *Partition) verifyAssignmentCompletion(batchId int) error {
-	verificationData, err := p.Execute(p.verify(p.zookeeper, batchId))
+func (p *Partition) verifyAssignmentCompletion(batchID int) error {
+	verificationData, err := p.Execute(p.verify(p.zookeeper, batchID))
 	if err != nil {
 		return err
 	}
@@ -177,14 +177,14 @@ func (p *Partition) verifyAssignmentCompletion(batchId int) error {
 	return nil
 }
 
-func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchId int) error {
+func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchID int) error {
 	fmt.Printf("Polling partition reassignment status until %v seconds\n", timeoutInS)
 	num := math.Ceil(float64(timeoutInS) / float64(pollIntervalInS))
 	var err error
 
 	for i := 0; i < int(num); i++ {
 		fmt.Println("Verifying Partition Reassignment ...")
-		err = p.verifyAssignmentCompletion(batchId)
+		err = p.verifyAssignmentCompletion(batchID)
 		if err == nil {
 			break
 		}
@@ -195,19 +195,19 @@ func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchId int) error {
 	return err
 }
 
-func (p *Partition) reassignForBatch(batch []*TopicMetadata, batchId, replicationFactor, numOfBrokers, throttle int) error {
+func (p *Partition) reassignForBatch(batch []*TopicMetadata, batchID, replicationFactor, numOfBrokers, throttle int) error {
 	data, err := json.MarshalIndent(buildReassignmentJSON(batch, replicationFactor, numOfBrokers), "", "")
-	err = p.WriteFile(fmt.Sprintf(p.reassignmentJsonFile, batchId), string(data))
+	err = p.WriteFile(fmt.Sprintf(p.reassignmentJSONFile, batchID), string(data))
 	if err != nil {
 		return err
 	}
 
-	reassignmentData, err := p.Execute(p.execute(p.zookeeper, batchId, throttle))
+	reassignmentData, err := p.Execute(p.execute(p.zookeeper, batchID, throttle))
 	if err != nil {
 		return err
 	}
 	fullReassignmentOutput := strings.Split(reassignmentData.String(), "\n")
-	err = p.WriteFile(fmt.Sprintf(p.rollbackJsonFile, batchId), fullReassignmentOutput[2])
+	err = p.WriteFile(fmt.Sprintf(p.rollbackJSONFile, batchID), fullReassignmentOutput[2])
 	if err != nil {
 		return err
 	}

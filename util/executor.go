@@ -7,7 +7,7 @@ import (
 	"os/exec"
 )
 
-type Executor struct {}
+type Executor struct{}
 
 func (e *Executor) Execute(name string, args []string) (bytes.Buffer, error) {
 	var out bytes.Buffer
