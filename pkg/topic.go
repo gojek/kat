@@ -6,11 +6,13 @@ import (
 )
 
 type Topic struct {
-	client KafkaClient
+	apiClient KafkaApiClient
+	sshClient KafkaSshClient
 }
 
 type TopicCli interface {
 	List() (map[string]TopicDetail, error)
+	ListLastWrittenTopics(int64) ([]string, error)
 	Get(regex string) ([]string, error)
 	Describe(topics []string) ([]*TopicMetadata, error)
 	ShowConfig(topic string) ([]ConfigEntry, error)
@@ -19,12 +21,39 @@ type TopicCli interface {
 	ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error
 }
 
-func NewTopic(client KafkaClient) *Topic {
-	return &Topic{client: client}
+func NewTopic(apiClient KafkaApiClient, opts ...TopicOpts) (*Topic, error) {
+	topic := &Topic{apiClient: apiClient}
+
+	for _, opt := range opts {
+		err := opt(topic)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return topic, nil
+}
+
+type TopicOpts func(*Topic) error
+
+func WithSshClient(user, port, keyfile string) TopicOpts {
+	return func(t *Topic) error {
+		kafkaSshClient, err := NewBrokerClient(t.apiClient, user, port, keyfile)
+		if err != nil {
+			fmt.Printf("Error while creating kafka ssh client - %v\n", err)
+			return err
+		}
+		t.sshClient = kafkaSshClient
+		return nil
+	}
 }
 
 func (t *Topic) List() (map[string]TopicDetail, error) {
-	return t.client.ListTopicDetails()
+	return t.apiClient.ListTopicDetails()
+}
+
+func (t *Topic) ListLastWrittenTopics(lastWrittenEpoch int64) ([]string, error) {
+	return t.sshClient.ListTopics(ListTopicsRequest{LastWritten: lastWrittenEpoch})
 }
 
 func (t *Topic) Get(regex string) ([]string, error) {
@@ -48,12 +77,12 @@ func (t *Topic) Get(regex string) ([]string, error) {
 }
 
 func (t *Topic) Describe(topics []string) ([]*TopicMetadata, error) {
-	return t.client.DescribeTopicMetadata(topics)
+	return t.apiClient.DescribeTopicMetadata(topics)
 }
 
 func (t *Topic) UpdateConfig(topics []string, configMap map[string]*string, validateOnly bool) error {
 	for _, topicName := range topics {
-		err := t.client.UpdateConfig(t.client.GetTopicResourceType(), topicName, configMap, validateOnly)
+		err := t.apiClient.UpdateConfig(t.apiClient.GetTopicResourceType(), topicName, configMap, validateOnly)
 		if err != nil {
 			fmt.Printf("Err while updating config for topic - %v: %v\n", topicName, err)
 			return err
@@ -64,8 +93,8 @@ func (t *Topic) UpdateConfig(topics []string, configMap map[string]*string, vali
 }
 
 func (t *Topic) ShowConfig(topic string) ([]ConfigEntry, error) {
-	configResource := ConfigResource{Name: topic, Type: t.client.GetTopicResourceType()}
-	return t.client.ShowConfig(configResource)
+	configResource := ConfigResource{Name: topic, Type: t.apiClient.GetTopicResourceType()}
+	return t.apiClient.ShowConfig(configResource)
 }
 
 func (t *Topic) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error {

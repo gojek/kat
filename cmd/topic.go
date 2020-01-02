@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/gojekfarm/kat/pkg"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var TopicCli pkg.TopicCli
@@ -14,7 +15,11 @@ var topicCmd = &cobra.Command{
 
 func loadTopicCli(command *cobra.Command, args []string) {
 	LoadCobra(command, args)
-	TopicCli = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetSaramaClient("broker-list")))
+	var err error
+	TopicCli, err = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetSaramaClient("broker-list")))
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 func clearTopicCli(command *cobra.Command, args []string) {
