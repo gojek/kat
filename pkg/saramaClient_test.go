@@ -9,7 +9,7 @@ import (
 
 func TestSaramaClient_ListTopicDetailsSuccess(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 	saramaTopicDetail := map[string]sarama.TopicDetail{
 		"topic1": {
 			NumPartitions:     1,
@@ -36,7 +36,7 @@ func TestSaramaClient_ListTopicDetailsSuccess(t *testing.T) {
 
 func TestSaramaClient_ListTopicDetailsFailure(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 	expectedErr := errors.New("error")
 	admin.On("ListTopics").Return(map[string]sarama.TopicDetail{}, expectedErr)
 
@@ -48,7 +48,7 @@ func TestSaramaClient_ListTopicDetailsFailure(t *testing.T) {
 
 func TestSaramaClient_DescribeTopicMetadataSuccess(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 	saramaTopicMetadata := []*sarama.TopicMetadata{
 		{
 			Err:        0,
@@ -76,7 +76,7 @@ func TestSaramaClient_DescribeTopicMetadataSuccess(t *testing.T) {
 
 func TestSaramaClient_DescribeTopicMetadataFailure(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 	expectedErr := errors.New("error")
 	topics := []string{"topic1"}
 	admin.On("DescribeTopics", topics).Return([]*sarama.TopicMetadata{}, expectedErr)
@@ -89,7 +89,7 @@ func TestSaramaClient_DescribeTopicMetadataFailure(t *testing.T) {
 
 func TestSaramaClient_UpdateConfigSuccess(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 
 	topic := "topic1"
 	entries := map[string]*string{}
@@ -103,7 +103,7 @@ func TestSaramaClient_UpdateConfigSuccess(t *testing.T) {
 
 func TestSaramaClient_UpdateConfigFailure(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 	expectedErr := errors.New("error")
 
 	topic := "topic1"
@@ -119,7 +119,7 @@ func TestSaramaClient_UpdateConfigFailure(t *testing.T) {
 
 func TestSaramaClient_ShowConfigSuccess(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 	configResource := ConfigResource{
 		Type:        client.GetTopicResourceType(),
 		Name:        "topic1",
@@ -163,7 +163,7 @@ func TestSaramaClient_ShowConfigSuccess(t *testing.T) {
 
 func TestSaramaClient_ShowConfigFailure(t *testing.T) {
 	admin := &MockClusterAdmin{}
-	client := NewSaramaClient(admin)
+	client := NewSaramaClient(admin, nil)
 	expectedErr := errors.New("error")
 
 	configResource := ConfigResource{

@@ -19,6 +19,7 @@ func TestTopic_ListSuccess(t *testing.T) {
 		},
 	}
 	kafkaClient.On("ListTopicDetails").Return(expectedTopicDetails, nil)
+	kafkaClient.On("ListBrokers").Return(nil)
 
 	topicDetails, err := topicCli.List()
 	assert.NoError(t, err)
@@ -32,6 +33,7 @@ func TestTopic_ListFailure(t *testing.T) {
 	expectedErr := errors.New("error")
 
 	kafkaClient.On("ListTopicDetails").Return(map[string]TopicDetail{}, expectedErr)
+	kafkaClient.On("ListBrokers").Return(nil)
 
 	_, err := topicCli.List()
 	assert.Error(t, err)

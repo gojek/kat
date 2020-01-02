@@ -29,8 +29,10 @@ var MirrorCmd = &cobra.Command{
 	Short: "Mirror topic configurations from source to destination cluster",
 	Run: func(cmd *cobra.Command, args []string) {
 		u := util.NewCobraUtil(cmd)
-		m := mirror{sourceAdmin: u.GetAdminClient("source-broker-ips"),
-			destinationAdmin: u.GetAdminClient("destination-broker-ips"),
+		sourceAdmin, _ := u.GetSaramaClient("source-broker-ips")
+		destinationAdmin, _ := u.GetSaramaClient("destination-broker-ips")
+		m := mirror{sourceAdmin: sourceAdmin,
+			destinationAdmin: destinationAdmin,
 			topics:           u.GetTopicNames(),
 			createTopic:      u.GetBoolArg("create-topics"),
 			partitions:       u.GetBoolArg("increase-partitions"),

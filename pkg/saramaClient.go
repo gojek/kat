@@ -6,15 +6,25 @@ import (
 )
 
 type SaramaClient struct {
-	sarama.ClusterAdmin
+	admin  sarama.ClusterAdmin
+	client sarama.Client
 }
 
-func NewSaramaClient(admin sarama.ClusterAdmin) *SaramaClient {
-	return &SaramaClient{admin}
+func NewSaramaClient(admin sarama.ClusterAdmin, client sarama.Client) *SaramaClient {
+	return &SaramaClient{admin, client}
+}
+
+func (s *SaramaClient) ListBrokers() map[int]string {
+	brokerMap := make(map[int]string)
+	brokers := s.client.Brokers()
+	for _, broker := range brokers {
+		brokerMap[int(broker.ID())] = broker.Addr()
+	}
+	return brokerMap
 }
 
 func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
-	topics, err := s.ListTopics()
+	topics, err := s.admin.ListTopics()
 	if err != nil {
 		fmt.Printf("Err while retrieving Topic details: %detail\n", err)
 		return nil, err
@@ -34,7 +44,7 @@ func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 }
 
 func (s *SaramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error) {
-	metadata, err := s.DescribeTopics(topics)
+	metadata, err := s.admin.DescribeTopics(topics)
 	if err != nil {
 		fmt.Printf("Err while retrieving Topic metadata: %v\n", err)
 		return nil, err
@@ -65,7 +75,7 @@ func (s *SaramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata,
 }
 
 func (s *SaramaClient) UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error {
-	err := s.AlterConfig(sarama.ConfigResourceType(resourceType), name, entries, validateOnly)
+	err := s.admin.AlterConfig(sarama.ConfigResourceType(resourceType), name, entries, validateOnly)
 	if err != nil {
 		fmt.Printf("Error while changing config for topic %v - %v\n", name, err)
 	}
@@ -77,7 +87,7 @@ func (s *SaramaClient) GetTopicResourceType() int {
 }
 
 func (s *SaramaClient) ShowConfig(resource ConfigResource) ([]ConfigEntry, error) {
-	entries, err := s.DescribeConfig(sarama.ConfigResource{
+	entries, err := s.admin.DescribeConfig(sarama.ConfigResource{
 		Type:        sarama.ConfigResourceType(resource.Type),
 		Name:        resource.Name,
 		ConfigNames: resource.ConfigNames,

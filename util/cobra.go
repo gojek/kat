@@ -18,18 +18,24 @@ func NewCobraUtil(cmd *cobra.Command) *CobraUtil {
 	return &CobraUtil{cmd: cmd}
 }
 
-func (u *CobraUtil) GetAdminClient(argName string) sarama.ClusterAdmin {
+func (u *CobraUtil) GetSaramaClient(argName string) (sarama.ClusterAdmin, sarama.Client) {
 	addr := strings.Split(u.GetCmdArg(argName), ",")
 	cfg := sarama.NewConfig()
 	cfg.Version = sarama.V2_0_0_0
 
 	admin, err := sarama.NewClusterAdmin(addr, cfg)
 	if err != nil {
-		fmt.Printf("Err on creating admin client for %s: %v\n", addr, err)
+		fmt.Printf("Err on creating admin for %s: %v\n", addr, err)
 		os.Exit(1)
 	}
 
-	return admin
+	client, err := sarama.NewClient(addr, cfg)
+	if err != nil {
+		fmt.Printf("Err on creating client for %s: %v\n", addr, err)
+		os.Exit(1)
+	}
+
+	return admin, client
 }
 
 func (u *CobraUtil) GetCmdArg(argName string) string {

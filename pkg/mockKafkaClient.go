@@ -6,6 +6,11 @@ type MockKafkaClient struct {
 	mock.Mock
 }
 
+func (m *MockKafkaClient) ListBrokers() map[int]string {
+	args := m.Called()
+	return args.Get(0).(map[int]string)
+}
+
 func (m *MockKafkaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 	args := m.Called()
 	return args.Get(0).(map[string]TopicDetail), args.Error(1)

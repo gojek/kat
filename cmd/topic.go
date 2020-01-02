@@ -14,7 +14,7 @@ var topicCmd = &cobra.Command{
 
 func loadTopicCli(command *cobra.Command, args []string) {
 	LoadCobra(command, args)
-	TopicCli = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetAdminClient("broker-list")))
+	TopicCli = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetSaramaClient("broker-list")))
 }
 
 func clearTopicCli(command *cobra.Command, args []string) {
