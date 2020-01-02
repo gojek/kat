@@ -8,6 +8,21 @@ type MockTopicCli struct {
 	mock.Mock
 }
 
+func (m *MockTopicCli) ListLastWrittenTopics(lastWrittenEpoch int64, dataDir string) ([]string, error) {
+	args := m.Called(lastWrittenEpoch, dataDir)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockTopicCli) ListOnly(regex string, include bool) ([]string, error) {
+	args := m.Called(regex, include)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockTopicCli) Delete(topics []string) error {
+	args := m.Called(topics)
+	return args.Error(0)
+}
+
 func (m *MockTopicCli) List() (map[string]TopicDetail, error) {
 	args := m.Called()
 	return args.Get(0).(map[string]TopicDetail), args.Error(1)

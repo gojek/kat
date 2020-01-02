@@ -43,7 +43,7 @@ func init() {
 }
 
 func (r *reassignPartitions) reassignPartitions() {
-	topics, err := TopicCli.Get(r.topics)
+	topics, err := TopicCli.ListOnly(r.topics, true)
 	if err != nil {
 		fmt.Printf("Error while filtering topics - %v\n", err)
 		return

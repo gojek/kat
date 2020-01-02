@@ -2,16 +2,19 @@ package pkg
 
 import (
 	"fmt"
-	"regexp"
+	"github.com/gojekfarm/kat/util"
 )
 
 type Topic struct {
-	client KafkaClient
+	apiClient KafkaAPIClient
+	sshClient KafkaSSHClient
 }
 
 type TopicCli interface {
 	List() (map[string]TopicDetail, error)
-	Get(regex string) ([]string, error)
+	ListLastWrittenTopics(int64, string) ([]string, error)
+	ListOnly(regex string, include bool) ([]string, error)
+	Delete(topics []string) error
 	Describe(topics []string) ([]*TopicMetadata, error)
 	ShowConfig(topic string) ([]ConfigEntry, error)
 	UpdateConfig(topics []string, configMap map[string]*string, validateOnly bool) error
@@ -19,15 +22,49 @@ type TopicCli interface {
 	ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error
 }
 
-func NewTopic(client KafkaClient) *Topic {
-	return &Topic{client: client}
+func NewTopic(apiClient KafkaAPIClient, opts ...TopicOpts) (*Topic, error) {
+	topic := &Topic{apiClient: apiClient}
+
+	for _, opt := range opts {
+		err := opt(topic)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return topic, nil
+}
+
+type TopicOpts func(*Topic) error
+
+func WithSSHClient(user, port, keyfile string) TopicOpts {
+	return func(t *Topic) error {
+		sshClient, err := NewSSHClient(user, port, keyfile)
+		if err != nil {
+			return err
+		}
+		kafkaSSHClient, err := NewKafkaRemoteClient(t.apiClient, sshClient)
+		if err != nil {
+			fmt.Printf("Error while creating kafka remote client - %v\n", err)
+			return err
+		}
+		t.sshClient = kafkaSSHClient
+		return nil
+	}
 }
 
 func (t *Topic) List() (map[string]TopicDetail, error) {
-	return t.client.ListTopicDetails()
+	return t.apiClient.ListTopicDetails()
 }
 
-func (t *Topic) Get(regex string) ([]string, error) {
+func (t *Topic) ListLastWrittenTopics(lastWrittenEpoch int64, dataDir string) ([]string, error) {
+	return t.sshClient.ListTopics(ListTopicsRequest{
+		LastWritten: lastWrittenEpoch,
+		DataDir:     dataDir,
+	})
+}
+
+func (t *Topic) ListOnly(regex string, include bool) ([]string, error) {
 	topicDetails, err := t.List()
 	if err != nil {
 		return nil, err
@@ -35,25 +72,22 @@ func (t *Topic) Get(regex string) ([]string, error) {
 
 	var topics []string
 	for key := range topicDetails {
-		matched, err := regexp.Match(regex, []byte(key))
-		if err != nil {
-			return nil, err
-		}
-
-		if matched {
-			topics = append(topics, key)
-		}
+		topics = append(topics, key)
 	}
-	return topics, nil
+	return util.Filter(topics, regex, include)
+}
+
+func (t *Topic) Delete(topics []string) error {
+	return t.apiClient.DeleteTopic(topics)
 }
 
 func (t *Topic) Describe(topics []string) ([]*TopicMetadata, error) {
-	return t.client.DescribeTopicMetadata(topics)
+	return t.apiClient.DescribeTopicMetadata(topics)
 }
 
 func (t *Topic) UpdateConfig(topics []string, configMap map[string]*string, validateOnly bool) error {
 	for _, topicName := range topics {
-		err := t.client.UpdateConfig(t.client.GetTopicResourceType(), topicName, configMap, validateOnly)
+		err := t.apiClient.UpdateConfig(t.apiClient.GetTopicResourceType(), topicName, configMap, validateOnly)
 		if err != nil {
 			fmt.Printf("Err while updating config for topic - %v: %v\n", topicName, err)
 			return err
@@ -64,8 +98,8 @@ func (t *Topic) UpdateConfig(topics []string, configMap map[string]*string, vali
 }
 
 func (t *Topic) ShowConfig(topic string) ([]ConfigEntry, error) {
-	configResource := ConfigResource{Name: topic, Type: t.client.GetTopicResourceType()}
-	return t.client.ShowConfig(configResource)
+	configResource := ConfigResource{Name: topic, Type: t.apiClient.GetTopicResourceType()}
+	return t.apiClient.ShowConfig(configResource)
 }
 
 func (t *Topic) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error {
