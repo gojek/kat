@@ -32,6 +32,7 @@ func init() {
 	topicCmd.MarkPersistentFlagRequired("broker-list")
 
 	topicCmd.AddCommand(listTopicCmd)
+	topicCmd.AddCommand(deleteTopicCmd)
 	topicCmd.AddCommand(describeTopicCmd)
 	topicCmd.AddCommand(increaseReplicationFactorCmd)
 	topicCmd.AddCommand(reassignPartitionsCmd)

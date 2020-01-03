@@ -9,7 +9,7 @@ import (
 
 func TestTopic_ListSuccess(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 	expectedTopicDetails := map[string]TopicDetail{
 		"topic1": {
 			NumPartitions:     1,
@@ -19,7 +19,6 @@ func TestTopic_ListSuccess(t *testing.T) {
 		},
 	}
 	kafkaClient.On("ListTopicDetails").Return(expectedTopicDetails, nil)
-	kafkaClient.On("ListBrokers").Return(nil)
 
 	topicDetails, err := topicCli.List()
 	assert.NoError(t, err)
@@ -29,13 +28,12 @@ func TestTopic_ListSuccess(t *testing.T) {
 
 func TestTopic_ListFailure(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
 	kafkaClient.On("ListTopicDetails").Return(map[string]TopicDetail{}, expectedErr)
-	kafkaClient.On("ListBrokers").Return(nil)
 
-	_, err := topicCli.List()
+	_, err = topicCli.List()
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	kafkaClient.AssertExpectations(t)
@@ -43,7 +41,7 @@ func TestTopic_ListFailure(t *testing.T) {
 
 func TestTopic_DescribeSuccess(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 	expectedTopicMetadata := []*TopicMetadata{
 		{
 			Err:        sarama.ErrNoError,
@@ -63,13 +61,13 @@ func TestTopic_DescribeSuccess(t *testing.T) {
 
 func TestTopic_DescribeFailure(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
 	topics := []string{"topic1"}
 	kafkaClient.On("DescribeTopicMetadata", topics).Return([]*TopicMetadata{}, expectedErr)
 
-	_, err := topicCli.Describe(topics)
+	_, err = topicCli.Describe(topics)
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	kafkaClient.AssertExpectations(t)
@@ -77,7 +75,7 @@ func TestTopic_DescribeFailure(t *testing.T) {
 
 func TestTopic_UpdateConfigSuccess(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 
 	topics := []string{"topic1"}
 	entries := map[string]*string{}
@@ -85,14 +83,14 @@ func TestTopic_UpdateConfigSuccess(t *testing.T) {
 	kafkaClient.On("GetTopicResourceType").Return(int(sarama.TopicResource))
 	kafkaClient.On("UpdateConfig", int(sarama.TopicResource), topics[0], entries, validateOnly).Return(nil)
 
-	err := topicCli.UpdateConfig(topics, entries, validateOnly)
+	err = topicCli.UpdateConfig(topics, entries, validateOnly)
 	assert.NoError(t, err)
 	kafkaClient.AssertExpectations(t)
 }
 
 func TestTopic_UpdateConfigFailure(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
 	topics := []string{"topic1"}
@@ -101,7 +99,7 @@ func TestTopic_UpdateConfigFailure(t *testing.T) {
 	kafkaClient.On("GetTopicResourceType").Return(int(sarama.TopicResource))
 	kafkaClient.On("UpdateConfig", int(sarama.TopicResource), topics[0], entries, validateOnly).Return(expectedErr)
 
-	err := topicCli.UpdateConfig(topics, entries, validateOnly)
+	err = topicCli.UpdateConfig(topics, entries, validateOnly)
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	kafkaClient.AssertExpectations(t)
@@ -109,7 +107,7 @@ func TestTopic_UpdateConfigFailure(t *testing.T) {
 
 func TestTopic_ShowConfigSuccess(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 
 	topic := "topic1"
 	kafkaClient.On("GetTopicResourceType").Return(int(sarama.TopicResource))
@@ -140,7 +138,7 @@ func TestTopic_ShowConfigSuccess(t *testing.T) {
 
 func TestTopic_ShowConfigFailure(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
 	topic := "topic1"
@@ -153,7 +151,7 @@ func TestTopic_ShowConfigFailure(t *testing.T) {
 
 	kafkaClient.On("ShowConfig", configResource).Return([]ConfigEntry{}, expectedErr)
 
-	_, err := topicCli.ShowConfig(topic)
+	_, err = topicCli.ShowConfig(topic)
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	kafkaClient.AssertExpectations(t)
@@ -161,13 +159,13 @@ func TestTopic_ShowConfigFailure(t *testing.T) {
 
 func TestTopic_IncreaseReplicationFactorDescribeFailure(t *testing.T) {
 	kafkaClient := &MockKafkaClient{}
-	topicCli := NewTopic(kafkaClient)
+	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
 	topics := []string{"topic1"}
 	kafkaClient.On("DescribeTopicMetadata", topics).Return([]*TopicMetadata{}, expectedErr)
 
-	err := topicCli.IncreaseReplicationFactor(topics, 1, 1, 1, 1, 1, 10000, "zookeeper")
+	err = topicCli.IncreaseReplicationFactor(topics, 1, 1, 1, 1, 1, 10000, "zookeeper")
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	kafkaClient.AssertExpectations(t)

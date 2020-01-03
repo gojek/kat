@@ -46,7 +46,7 @@ func init() {
 }
 
 func (i *increaseReplication) increaseReplicationFactor() {
-	topics, err := TopicCli.Get(i.topics)
+	topics, err := TopicCli.ListOnly(i.topics, true)
 	if err != nil {
 		fmt.Printf("Error while filtering topics - %v\n", err)
 		return

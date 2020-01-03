@@ -43,6 +43,19 @@ func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 	return topicDetails, err
 }
 
+func (s *SaramaClient) DeleteTopic(topics []string) error {
+	var err error
+	for _, topic := range topics {
+		err = s.admin.DeleteTopic("test")
+		if err != nil {
+			fmt.Printf("Error while deleting topic %v- %v\n", topic, err)
+		} else {
+			fmt.Printf("Deleted topic - %v\n", topic)
+		}
+	}
+	return nil
+}
+
 func (s *SaramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error) {
 	metadata, err := s.admin.DescribeTopics(topics)
 	if err != nil {

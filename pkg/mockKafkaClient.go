@@ -6,6 +6,11 @@ type MockKafkaClient struct {
 	mock.Mock
 }
 
+func (m *MockKafkaClient) DeleteTopic(topics []string) error {
+	args := m.Called()
+	return args.Error(0)
+}
+
 func (m *MockKafkaClient) ListBrokers() map[int]string {
 	args := m.Called()
 	return args.Get(0).(map[int]string)

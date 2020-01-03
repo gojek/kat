@@ -35,7 +35,28 @@ func NewSshClient(user, port, keyfile string) (*sshClient, error) {
 	return &sshClient{config: config, port: port}, nil
 }
 
-func (s *sshClient) Dial(address string) (*ssh.Client, error) {
+func (s *sshClient) DialAndExecute(address string, commands ...string) (*bytes.Buffer, error) {
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", address, s.port), s.config)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	var buffer *bytes.Buffer
+	for _, cmd := range commands {
+		session, err := conn.NewSession()
+		if err != nil {
+			return nil, err
+		}
+		buffer, err = s.execute(session, cmd)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return buffer, nil
+}
+
+func (s *sshClient) dial(address string) (*ssh.Client, error) {
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", address, s.port), s.config)
 	if err != nil {
 		return nil, err
@@ -43,18 +64,13 @@ func (s *sshClient) Dial(address string) (*ssh.Client, error) {
 	return client, nil
 }
 
-func (s *sshClient) Execute(client *ssh.Client, cmd string) (*bytes.Buffer, error) {
-	session, err := client.NewSession()
-	if err != nil {
-		fmt.Printf("Error while creating session - %v\n", err)
-		return nil, err
-	}
+func (s *sshClient) execute(session *ssh.Session, cmd string) (*bytes.Buffer, error) {
 	defer session.Close()
 
 	var out, sessionErr bytes.Buffer
 	session.Stdout = &out
 	session.Stderr = &sessionErr
-	err = session.Run(cmd)
+	err := session.Run(cmd)
 	if err != nil {
 		return &sessionErr, err
 	}

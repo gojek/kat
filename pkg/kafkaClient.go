@@ -46,12 +46,14 @@ type ConfigSynonym struct {
 }
 
 type ListTopicsRequest struct {
-	LastWritten int64
+	LastWritten  int64
+	DataDir      string
 }
 
 type KafkaApiClient interface {
 	ListBrokers() map[int]string
 	ListTopicDetails() (map[string]TopicDetail, error)
+	DeleteTopic(topics []string) error
 	DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error)
 	UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error
 	GetTopicResourceType() int

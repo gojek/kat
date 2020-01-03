@@ -2,7 +2,7 @@ package pkg
 
 import (
 	"fmt"
-	"regexp"
+	"github.com/gojekfarm/kat/util"
 )
 
 type Topic struct {
@@ -12,8 +12,9 @@ type Topic struct {
 
 type TopicCli interface {
 	List() (map[string]TopicDetail, error)
-	ListLastWrittenTopics(int64) ([]string, error)
-	Get(regex string) ([]string, error)
+	ListLastWrittenTopics(int64, string) ([]string, error)
+	ListOnly(regex string, include bool) ([]string, error)
+	Delete(topics []string) error
 	Describe(topics []string) ([]*TopicMetadata, error)
 	ShowConfig(topic string) ([]ConfigEntry, error)
 	UpdateConfig(topics []string, configMap map[string]*string, validateOnly bool) error
@@ -52,11 +53,14 @@ func (t *Topic) List() (map[string]TopicDetail, error) {
 	return t.apiClient.ListTopicDetails()
 }
 
-func (t *Topic) ListLastWrittenTopics(lastWrittenEpoch int64) ([]string, error) {
-	return t.sshClient.ListTopics(ListTopicsRequest{LastWritten: lastWrittenEpoch})
+func (t *Topic) ListLastWrittenTopics(lastWrittenEpoch int64, dataDir string) ([]string, error) {
+	return t.sshClient.ListTopics(ListTopicsRequest{
+		LastWritten: lastWrittenEpoch,
+		DataDir:     dataDir,
+	})
 }
 
-func (t *Topic) Get(regex string) ([]string, error) {
+func (t *Topic) ListOnly(regex string, include bool) ([]string, error) {
 	topicDetails, err := t.List()
 	if err != nil {
 		return nil, err
@@ -64,16 +68,13 @@ func (t *Topic) Get(regex string) ([]string, error) {
 
 	var topics []string
 	for key := range topicDetails {
-		matched, err := regexp.Match(regex, []byte(key))
-		if err != nil {
-			return nil, err
-		}
-
-		if matched {
-			topics = append(topics, key)
-		}
+		topics = append(topics, key)
 	}
-	return topics, nil
+	return util.Filter(topics, regex, include)
+}
+
+func (t *Topic) Delete(topics []string) error {
+	return t.apiClient.DeleteTopic(topics)
 }
 
 func (t *Topic) Describe(topics []string) ([]*TopicMetadata, error) {

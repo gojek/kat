@@ -3,7 +3,7 @@ module github.com/gojekfarm/kat
 go 1.12
 
 require (
-	github.com/Shopify/sarama v1.23.1
+	github.com/Shopify/sarama v1.24.1
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 	github.com/mattn/go-runewidth v0.0.5 // indirect
@@ -16,5 +16,4 @@ require (
 	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf
 	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271 // indirect
 	golang.org/x/tools v0.0.0-20191230220329-2aa90c603ae3
-	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
 )

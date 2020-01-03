@@ -19,7 +19,7 @@ func TestIncreaseReplicationFactor_Success(t *testing.T) {
 	zookeeper := "zookeeper-host"
 	topicRegex := "topic1|topic2"
 
-	TopicCli.(*pkg.MockTopicCli).On("Get", topicRegex).Return(topics, nil).Times(1)
+	TopicCli.(*pkg.MockTopicCli).On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
 	TopicCli.(*pkg.MockTopicCli).On("IncreaseReplicationFactor", topics, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle, zookeeper).Return(nil).Times(1)
 	i := increaseReplication{replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, zookeeper: zookeeper}
 	i.increaseReplicationFactor()
@@ -40,7 +40,7 @@ func TestIncreaseReplicationFactor_GetFailure(t *testing.T) {
 	zookeeper := "zookeeper-host"
 	topicRegex := "topic1|topic2"
 
-	TopicCli.(*pkg.MockTopicCli).On("Get", topicRegex).Return(topics, errors.New("error")).Times(1)
+	TopicCli.(*pkg.MockTopicCli).On("ListOnly", topicRegex, true).Return(topics, errors.New("error")).Times(1)
 	i := increaseReplication{replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, zookeeper: zookeeper}
 	i.increaseReplicationFactor()
 	TopicCli.(*pkg.MockTopicCli).AssertNotCalled(t, "IncreaseReplicationFactor", topics, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle, zookeeper)
@@ -61,7 +61,7 @@ func TestIncreaseReplicationFactor_NoMatch(t *testing.T) {
 	zookeeper := "zookeeper-host"
 	topicRegex := "topic1|topic2"
 
-	TopicCli.(*pkg.MockTopicCli).On("Get", topicRegex).Return(topics, nil).Times(1)
+	TopicCli.(*pkg.MockTopicCli).On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
 	i := increaseReplication{replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, zookeeper: zookeeper}
 	i.increaseReplicationFactor()
 	TopicCli.(*pkg.MockTopicCli).AssertNotCalled(t, "IncreaseReplicationFactor", topics, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle, zookeeper)
