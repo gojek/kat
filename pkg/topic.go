@@ -38,7 +38,7 @@ type TopicOpts func(*Topic) error
 
 func WithSshClient(user, port, keyfile string) TopicOpts {
 	return func(t *Topic) error {
-		kafkaSshClient, err := NewBrokerClient(t.apiClient, user, port, keyfile)
+		kafkaSshClient, err := NewKafkaSshCli(t.apiClient, user, port, keyfile)
 		if err != nil {
 			fmt.Printf("Error while creating kafka ssh client - %v\n", err)
 			return err
