@@ -5,44 +5,33 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type sshCli interface {
-	DialAndExecute(address string, commands ...string) (*bytes.Buffer, error)
+	DialAndExecute(address string, commands ...shellCmd) (*bytes.Buffer, error)
 }
 
-type KafkaRemoteClient struct {
+type kafkaRemoteClient struct {
 	KafkaApiClient
 	sshCli
 }
 
-const FindLastWrittenDirectories = "find %s -maxdepth 1 -not -path \"*/\\.*\" -not -newermt \"%s\""
-const RemovePathPrefix = "xargs -I{} echo {} | rev | cut -d / -f1 | rev"
-const RemovePartitionSuffix = "xargs -I{} echo {} | rev | cut -d - -f2- | rev"
-const SortAndCount = "sort | uniq -c"
-const Reorder = "awk '{ print $2 \" \" $1}'"
-
-func NewKafkaSshCli(apiClient KafkaApiClient, user, port, keyfile string) (KafkaSshClient, error) {
-	sshClient, err := NewSshClient(user, port, keyfile)
-	if err != nil {
-		return nil, err
-	}
-	return &KafkaRemoteClient{apiClient, sshClient}, nil
+func NewKafkaRemoteClient(apiClient KafkaApiClient, sshClient sshCli) (KafkaSshClient, error) {
+	return &kafkaRemoteClient{apiClient, sshClient}, nil
 }
 
-func (r *KafkaRemoteClient) ListTopics(request ListTopicsRequest) ([]string, error) {
+func (r *kafkaRemoteClient) ListTopics(request ListTopicsRequest) ([]string, error) {
 	brokers := r.ListBrokers()
-	dateTime := time.Unix(request.LastWritten, 0)
 	topicMap := make(map[string]int)
 	for id := 1; id <= len(brokers); id++ {
 		fmt.Printf("Sshing into broker - %v\n", brokers[id])
-		cdCmd := fmt.Sprintf("cd %s", request.DataDir)
-		findTopicsCmd := fmt.Sprintf("%s | %s | %s | %s | %s", fmt.Sprintf(FindLastWrittenDirectories, request.DataDir, dateTime.UTC().Format(time.UnixDate)), RemovePathPrefix, RemovePartitionSuffix, SortAndCount, Reorder)
-		data, err := r.sshCli.DialAndExecute(strings.Split(brokers[id], ":")[0], cdCmd, findTopicsCmd)
-
+		data, err := r.sshCli.DialAndExecute(strings.Split(brokers[id], ":")[0], NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir))
+		if err != nil {
+			fmt.Printf("Error while executing command on broker - %v\n", err)
+			return nil, err
+		}
+		fmt.Println("Fetching the stale topics")
 		topics := strings.Split(data.String(), "\n")
-		fmt.Printf("Fetching the stale topics")
 		err = r.mapTopics(topicMap, topics)
 		if err != nil {
 			fmt.Printf("Error while reading topics in broker %v - %v\n", id, err)
@@ -54,7 +43,7 @@ func (r *KafkaRemoteClient) ListTopics(request ListTopicsRequest) ([]string, err
 	return topics, e
 }
 
-func (r *KafkaRemoteClient) mapTopics(topicMap map[string]int, topics []string) error {
+func (r *kafkaRemoteClient) mapTopics(topicMap map[string]int, topics []string) error {
 	for _, topic := range topics {
 		if topic == "" {
 			continue
@@ -70,7 +59,7 @@ func (r *KafkaRemoteClient) mapTopics(topicMap map[string]int, topics []string) 
 	return nil
 }
 
-func (r *KafkaRemoteClient) getFullyStaleTopics(topicMap map[string]int) ([]string, error) {
+func (r *kafkaRemoteClient) getFullyStaleTopics(topicMap map[string]int) ([]string, error) {
 	var staleTopics []string
 	topicDetails, err := r.ListTopicDetails()
 	if err != nil {

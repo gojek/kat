@@ -44,9 +44,8 @@ func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 }
 
 func (s *SaramaClient) DeleteTopic(topics []string) error {
-	var err error
 	for _, topic := range topics {
-		err = s.admin.DeleteTopic("test")
+		err := s.admin.DeleteTopic(topic)
 		if err != nil {
 			fmt.Printf("Error while deleting topic %v- %v\n", topic, err)
 		} else {

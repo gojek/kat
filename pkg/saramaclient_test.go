@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
@@ -183,4 +184,27 @@ func TestSaramaClient_ShowConfigFailure(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	admin.AssertExpectations(t)
+}
+
+func TestSaramaClient_DeleteTopicSuccess(t *testing.T) {
+	admin := &MockClusterAdmin{}
+	client := NewSaramaClient(admin, nil)
+	topics := []string{"topic-1", "topic-2"}
+	admin.On("DeleteTopic", mock.Anything).Return(nil)
+
+	err := client.DeleteTopic(topics)
+
+	assert.NoError(t, err)
+	admin.AssertExpectations(t)
+}
+
+func TestSaramaClient_ListBrokersSuccess(t *testing.T) {
+	saramaClient := &MockSaramaClient{}
+	client := NewSaramaClient(nil, saramaClient)
+	saramaClient.On("Brokers").Return([]*sarama.Broker{sarama.NewBroker("abc:123")})
+
+	brokers := client.ListBrokers()
+
+	assert.Equal(t, map[int]string{-1: "abc:123"}, brokers)
+	saramaClient.AssertExpectations(t)
 }
