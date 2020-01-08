@@ -19,7 +19,7 @@ func TestFindTopicsCmd_Get_ReturnsFilesOlderThanDate(t *testing.T) {
 	e.Execute("touch", []string{"-a", "-m", "-t", "202001020000", fmt.Sprintf("%s/xyz-2", testDir)})
 
 	i := &util.IO{}
-	i.WriteFile(fmt.Sprintf("%s/find_command.sh", testDir), NewFindTopicsCmd(1577721600, testDir).Get())
+	i.WriteFile(fmt.Sprintf("%s/find_command.sh", testDir), NewFindTopicsCmd(1577836800, testDir).Get())
 	resp, err := e.Execute("bash", []string{fmt.Sprintf("%s/find_command.sh", testDir)})
 
 	assert.NoError(t, err)
