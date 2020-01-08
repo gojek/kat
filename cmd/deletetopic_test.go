@@ -163,7 +163,6 @@ func TestDelete_WhenLastWriteIsPassed_DeletesBlackListedTopicsOnNo(t *testing.T)
 	mockIo.AssertExpectations(t)
 }
 
-
 func TestDelete_WhenLastWriteIsPassed_DeletesBlackListedTopicsOnError(t *testing.T) {
 	clearTopicCli(nil, nil)
 	TopicCli = &pkg.MockTopicCli{}

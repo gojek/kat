@@ -16,4 +16,3 @@ func Filter(list []string, regex string, include bool) ([]string, error) {
 	}
 	return filteredList, nil
 }
-

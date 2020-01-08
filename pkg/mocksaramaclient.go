@@ -5,7 +5,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockSaramaClient struct{
+type MockSaramaClient struct {
 	mock.Mock
 }
 

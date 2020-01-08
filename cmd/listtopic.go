@@ -67,7 +67,7 @@ func (l *listTopic) listLastWrittenTopics() {
 	var err error
 	keyfile, _ := homedir.Expand(l.sshKeyFilePath)
 	TopicCli, err = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetSaramaClient("broker-list")),
-		pkg.WithSshClient(ssh_config.Get("*", "User"), l.sshPort, keyfile))
+		pkg.WithSSHClient(ssh_config.Get("*", "User"), l.sshPort, keyfile))
 	if err != nil {
 		fmt.Printf("Error while creating kafka client - %v\n", err)
 		return

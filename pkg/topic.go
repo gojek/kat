@@ -6,8 +6,8 @@ import (
 )
 
 type Topic struct {
-	apiClient KafkaApiClient
-	sshClient KafkaSshClient
+	apiClient KafkaAPIClient
+	sshClient KafkaSSHClient
 }
 
 type TopicCli interface {
@@ -22,7 +22,7 @@ type TopicCli interface {
 	ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error
 }
 
-func NewTopic(apiClient KafkaApiClient, opts ...TopicOpts) (*Topic, error) {
+func NewTopic(apiClient KafkaAPIClient, opts ...TopicOpts) (*Topic, error) {
 	topic := &Topic{apiClient: apiClient}
 
 	for _, opt := range opts {
@@ -37,18 +37,18 @@ func NewTopic(apiClient KafkaApiClient, opts ...TopicOpts) (*Topic, error) {
 
 type TopicOpts func(*Topic) error
 
-func WithSshClient(user, port, keyfile string) TopicOpts {
+func WithSSHClient(user, port, keyfile string) TopicOpts {
 	return func(t *Topic) error {
-		sshClient, err := NewSshClient(user, port, keyfile)
+		sshClient, err := NewSSHClient(user, port, keyfile)
 		if err != nil {
 			return err
 		}
-		kafkaSshClient, err := NewKafkaRemoteClient(t.apiClient, sshClient)
+		kafkaSSHClient, err := NewKafkaRemoteClient(t.apiClient, sshClient)
 		if err != nil {
 			fmt.Printf("Error while creating kafka remote client - %v\n", err)
 			return err
 		}
-		t.sshClient = kafkaSshClient
+		t.sshClient = kafkaSSHClient
 		return nil
 	}
 }

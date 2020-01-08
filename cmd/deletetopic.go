@@ -37,7 +37,7 @@ var deleteTopicCmd = &cobra.Command{
 			sshKeyFilePath: Cobra.GetCmdArg("ssh-key-file-path"),
 			io:             &util.IO{},
 		}
-		err := d.initTopicCliWithSshClient()
+		err := d.initTopicCliWithSSHClient()
 		if err != nil {
 			return
 		}
@@ -113,14 +113,14 @@ func (d *deleteTopic) getTopics(regex string, include bool) ([]string, error) {
 	return topics, err
 }
 
-func (d *deleteTopic) initTopicCliWithSshClient() error {
+func (d *deleteTopic) initTopicCliWithSSHClient() error {
 	keyFile, err := homedir.Expand(d.sshKeyFilePath)
 	if err != nil {
 		fmt.Printf("Error while resolving data directory - %v\n", err)
 		return err
 	}
 	TopicCli, err = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetSaramaClient("broker-list")),
-		pkg.WithSshClient(ssh_config.Get("*", "User"), d.sshPort, keyFile))
+		pkg.WithSSHClient(ssh_config.Get("*", "User"), d.sshPort, keyFile))
 	if err != nil {
 		fmt.Printf("Error while creating kafka client - %v\n", err)
 	}

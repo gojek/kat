@@ -12,11 +12,11 @@ type sshCli interface {
 }
 
 type kafkaRemoteClient struct {
-	KafkaApiClient
+	KafkaAPIClient
 	sshCli
 }
 
-func NewKafkaRemoteClient(apiClient KafkaApiClient, sshClient sshCli) (KafkaSshClient, error) {
+func NewKafkaRemoteClient(apiClient KafkaAPIClient, sshClient sshCli) (KafkaSSHClient, error) {
 	return &kafkaRemoteClient{apiClient, sshClient}, nil
 }
 

@@ -8,12 +8,12 @@ import (
 	"net"
 )
 
-type sshClient struct {
+type SSHClient struct {
 	config *ssh.ClientConfig
 	port   string
 }
 
-func NewSshClient(user, port, keyfile string) (*sshClient, error) {
+func NewSSHClient(user, port, keyfile string) (*SSHClient, error) {
 	key, err := ioutil.ReadFile(keyfile)
 	if err != nil {
 		return nil, err
@@ -32,10 +32,10 @@ func NewSshClient(user, port, keyfile string) (*sshClient, error) {
 		HostKeyCallback: ssh.HostKeyCallback(func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil }),
 	}
 
-	return &sshClient{config: config, port: port}, nil
+	return &SSHClient{config: config, port: port}, nil
 }
 
-func (s *sshClient) DialAndExecute(address string, commands ...shellCmd) (*bytes.Buffer, error) {
+func (s *SSHClient) DialAndExecute(address string, commands ...shellCmd) (*bytes.Buffer, error) {
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", address, s.port), s.config)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (s *sshClient) DialAndExecute(address string, commands ...shellCmd) (*bytes
 	return buffer, nil
 }
 
-func (s *sshClient) dial(address string) (*ssh.Client, error) {
+func (s *SSHClient) dial(address string) (*ssh.Client, error) {
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", address, s.port), s.config)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (s *sshClient) dial(address string) (*ssh.Client, error) {
 	return client, nil
 }
 
-func (s *sshClient) execute(session *ssh.Session, cmd shellCmd) (*bytes.Buffer, error) {
+func (s *SSHClient) execute(session *ssh.Session, cmd shellCmd) (*bytes.Buffer, error) {
 	defer session.Close()
 
 	var out, sessionErr bytes.Buffer

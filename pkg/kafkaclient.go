@@ -46,11 +46,11 @@ type ConfigSynonym struct {
 }
 
 type ListTopicsRequest struct {
-	LastWritten  int64
-	DataDir      string
+	LastWritten int64
+	DataDir     string
 }
 
-type KafkaApiClient interface {
+type KafkaAPIClient interface {
 	ListBrokers() map[int]string
 	ListTopicDetails() (map[string]TopicDetail, error)
 	DeleteTopic(topics []string) error
@@ -60,6 +60,6 @@ type KafkaApiClient interface {
 	ShowConfig(resource ConfigResource) ([]ConfigEntry, error)
 }
 
-type KafkaSshClient interface {
+type KafkaSSHClient interface {
 	ListTopics(ListTopicsRequest) ([]string, error)
 }

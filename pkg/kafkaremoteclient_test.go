@@ -9,8 +9,8 @@ import (
 )
 
 func TestKafkaRemoteClient_ListTopics_AllPartitionsStale(t *testing.T) {
-	apiClient := &MockKafkaApiClient{}
-	sshCli := &MockSshCli{}
+	apiClient := &MockKafkaAPIClient{}
+	sshCli := &MockSSHCli{}
 	remoteClient, _ := NewKafkaRemoteClient(apiClient, sshCli)
 	request := ListTopicsRequest{
 		LastWritten: 123,
@@ -46,8 +46,8 @@ func TestKafkaRemoteClient_ListTopics_AllPartitionsStale(t *testing.T) {
 }
 
 func TestKafkaRemoteClient_ListTopics_SomePartitionsAreStale(t *testing.T) {
-	apiClient := &MockKafkaApiClient{}
-	sshCli := &MockSshCli{}
+	apiClient := &MockKafkaAPIClient{}
+	sshCli := &MockSSHCli{}
 	remoteClient, _ := NewKafkaRemoteClient(apiClient, sshCli)
 	request := ListTopicsRequest{
 		LastWritten: 123,
@@ -82,8 +82,8 @@ func TestKafkaRemoteClient_ListTopics_SomePartitionsAreStale(t *testing.T) {
 }
 
 func TestKafkaRemoteClient_ListTopics_ApiClientDoesNotReturnTopicDetail(t *testing.T) {
-	apiClient := &MockKafkaApiClient{}
-	sshCli := &MockSshCli{}
+	apiClient := &MockKafkaAPIClient{}
+	sshCli := &MockSSHCli{}
 	remoteClient, _ := NewKafkaRemoteClient(apiClient, sshCli)
 	request := ListTopicsRequest{
 		LastWritten: 123,
@@ -114,8 +114,8 @@ func TestKafkaRemoteClient_ListTopics_ApiClientDoesNotReturnTopicDetail(t *testi
 }
 
 func TestKafkaRemoteClient_ListTopics_ApiClientReturnsError(t *testing.T) {
-	apiClient := &MockKafkaApiClient{}
-	sshCli := &MockSshCli{}
+	apiClient := &MockKafkaAPIClient{}
+	sshCli := &MockSSHCli{}
 	remoteClient, _ := NewKafkaRemoteClient(apiClient, sshCli)
 	request := ListTopicsRequest{
 		LastWritten: 123,
@@ -140,8 +140,8 @@ func TestKafkaRemoteClient_ListTopics_ApiClientReturnsError(t *testing.T) {
 }
 
 func TestKafkaRemoteClient_ListTopics_DialAndExecuteReturnsError(t *testing.T) {
-	apiClient := &MockKafkaApiClient{}
-	sshCli := &MockSshCli{}
+	apiClient := &MockKafkaAPIClient{}
+	sshCli := &MockSSHCli{}
 	remoteClient, _ := NewKafkaRemoteClient(apiClient, sshCli)
 	request := ListTopicsRequest{
 		LastWritten: 123,
@@ -162,8 +162,8 @@ func TestKafkaRemoteClient_ListTopics_DialAndExecuteReturnsError(t *testing.T) {
 }
 
 func TestKafkaRemoteClient_ListTopics_DataIsNotReturnedInExpectedFormat(t *testing.T) {
-	apiClient := &MockKafkaApiClient{}
-	sshCli := &MockSshCli{}
+	apiClient := &MockKafkaAPIClient{}
+	sshCli := &MockSSHCli{}
 	remoteClient, _ := NewKafkaRemoteClient(apiClient, sshCli)
 	request := ListTopicsRequest{
 		LastWritten: 123,
