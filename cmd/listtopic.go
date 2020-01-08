@@ -73,11 +73,13 @@ func (l *listTopic) listLastWrittenTopics() {
 		return
 	}
 
-	brokers, err := TopicCli.ListLastWrittenTopics(l.lastWrite, l.dataDir)
+	topics, err := TopicCli.ListLastWrittenTopics(l.lastWrite, l.dataDir)
 	if err != nil {
 		fmt.Printf("Error while fetching topic list - %v\n", err)
 		return
 	}
-	fmt.Println(brokers)
+	for _, topic := range topics {
+		fmt.Println(topic)
+	}
 	return
 }
