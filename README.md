@@ -5,6 +5,7 @@
 ### Admin operations available
 - List topics
 - Describe topics
+- Delete topics
 - Increase replication factor of existing topics
 - Reassign partitions for topics
 - Show Config for topics
@@ -51,11 +52,11 @@ brew install kat
 
     ```./kat topic list --broker-list="broker" --topic-blacklist=test```
 
-- All the topics which last received data before the given time and matches whitelist regex will get deleted (unused/staled)
+- All the topics which received data before the given time and matches whitelist regex will get deleted (unused/staled)
 
     ```./kat topic list --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-whitelist=test```
 
-- All the topics which last received data before the given time and matches the blacklist regex will get deleted (unused/staled)
+- All the topics which received data before the given time and does not match the blacklist regex will get deleted (unused/staled)
 
     ```./kat topic list --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-blacklist=test```
 
