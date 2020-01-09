@@ -45,20 +45,20 @@ brew install kat
 
 *Delete topics*
 
-- All the topics matches the whitelist regex will get deleted
-    ```./kat topic list --broker-list="broker" --topic-whitelist=test```
+- All the topics that matches the whitelist regex will get deleted
+    ```./kat topic delete --broker-list="broker" --topic-whitelist=test```
 
-- All the topics does not match the blacklist regex will get deleted
+- All the topics that does not match the blacklist regex will get deleted
 
-    ```./kat topic list --broker-list="broker" --topic-blacklist=test```
+    ```./kat topic delete --broker-list="broker" --topic-blacklist=test```
 
 - All the topics which received data before the given time and matches whitelist regex will get deleted (unused/staled)
 
-    ```./kat topic list --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-whitelist=test```
+    ```./kat topic delete --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-whitelist=test```
 
 - All the topics which received data before the given time and does not match the blacklist regex will get deleted (unused/staled)
 
-    ```./kat topic list --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-blacklist=test```
+    ```./kat topic delete --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-blacklist=test```
 
 *Increase replication factor for topics*
 
