@@ -8,6 +8,16 @@ type MockTopicCli struct {
 	mock.Mock
 }
 
+func (m *MockTopicCli) Create(topic string, detail TopicDetail, validateOnly bool) error {
+	args := m.Called(topic, detail, validateOnly)
+	return args.Error(0)
+}
+
+func (m *MockTopicCli) CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error {
+	args := m.Called(topic, count, assignment, validateOnly)
+	return args.Error(0)
+}
+
 func (m *MockTopicCli) ListLastWrittenTopics(lastWrittenEpoch int64, dataDir string) ([]string, error) {
 	args := m.Called(lastWrittenEpoch, dataDir)
 	return args.Get(0).([]string), args.Error(1)
@@ -38,7 +48,7 @@ func (m *MockTopicCli) Describe(topics []string) ([]*TopicMetadata, error) {
 	return args.Get(0).([]*TopicMetadata), args.Error(1)
 }
 
-func (m *MockTopicCli) ShowConfig(topic string) ([]ConfigEntry, error) {
+func (m *MockTopicCli) GetConfig(topic string) ([]ConfigEntry, error) {
 	args := m.Called(topic)
 	return args.Get(0).([]ConfigEntry), args.Error(1)
 }

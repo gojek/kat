@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+
 	"github.com/stretchr/testify/mock"
 )
 

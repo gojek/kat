@@ -2,30 +2,38 @@ package cmd
 
 import (
 	"fmt"
+
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
 )
 
 type showConfig struct {
+	BaseCmd
 	topics []string
 }
 
 var showConfigCmd = &cobra.Command{
-	Use:    "show",
-	Short:  "shows the config for the given topics",
-	PreRun: loadTopicCli,
+	Use:   "show",
+	Short: "shows the config for the given topics",
 	Run: func(command *cobra.Command, args []string) {
-		s := showConfig{topics: Cobra.GetTopicNames()}
+		cobraUtil := util.NewCobraUtil(command)
+		baseCmd := Init(cobraUtil)
+		s := showConfig{BaseCmd: baseCmd, topics: cobraUtil.GetTopicNames()}
 		s.showConfig()
 	},
-	PostRun: clearTopicCli,
 }
 
 func (s *showConfig) showConfig() {
 	for _, topicName := range s.topics {
-		configs, err := TopicCli.ShowConfig(topicName)
+		configs, err := s.TopicCli.GetConfig(topicName)
 		if err != nil {
-			fmt.Printf("Error while fetching config for topic %v - %v\n", topicName, err)
+			logger.Fatalf("Error while fetching config for topic %v - %v\n", topicName, err)
 			return
+		}
+		if len(configs) == 0 {
+			logger.Infof("Configs not found for topic - %v\n", topicName)
+			continue
 		}
 		fmt.Println("---------------------------------------------")
 		fmt.Printf("Configuration for topic - %v\n", topicName)

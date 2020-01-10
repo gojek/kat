@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gojekfarm/kat/util"
 	"os"
 
-	"github.com/gojekfarm/kat/cmd/mirror"
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/util"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,23 +18,15 @@ var cliCmd = &cobra.Command{
 	Version: fmt.Sprintf("%s (Commit: %s)", "0.0.1", "n/a"),
 }
 
-func LoadCobra(cmd *cobra.Command, args []string) {
-	Cobra = util.NewCobraUtil(cmd)
-}
-
-func ClearCobra(cmd *cobra.Command, args []string) {
-	Cobra = nil
-}
-
 func init() {
 	cobra.OnInitialize()
 	cliCmd.AddCommand(topicCmd)
-	cliCmd.AddCommand(mirror.MirrorCmd)
+	cliCmd.AddCommand(mirrorCmd)
 }
 
 func Execute() {
 	if err := cliCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		os.Exit(1)
 	}
 }

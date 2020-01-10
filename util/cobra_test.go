@@ -25,7 +25,7 @@ func TestCobraUtil_GetCmdArgReturnsValue(t *testing.T) {
 	testCmd.Execute()
 
 	util := NewCobraUtil(testCmd)
-	value := util.GetCmdArg("key1")
+	value := util.GetStringArg("key1")
 
 	assert.Equal(t, "val1", value)
 }
@@ -34,7 +34,7 @@ func TestCobraUtil_GetCmdArgReturnsEmptyStringWhenNotPresent(t *testing.T) {
 	testCmd.Execute()
 
 	util := NewCobraUtil(testCmd)
-	value := util.GetCmdArg("key2")
+	value := util.GetStringArg("key2")
 
 	assert.Equal(t, "", value)
 }

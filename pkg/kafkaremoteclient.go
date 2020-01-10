@@ -2,9 +2,10 @@ package pkg
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/gojekfarm/kat/logger"
 )
 
 type sshCli interface {
@@ -24,17 +25,17 @@ func (r *kafkaRemoteClient) ListTopics(request ListTopicsRequest) ([]string, err
 	brokers := r.ListBrokers()
 	topicMap := make(map[string]int)
 	for id := 1; id <= len(brokers); id++ {
-		fmt.Printf("Sshing into broker - %v\n", brokers[id])
+		logger.Infof("Sshing into broker - %v\n", brokers[id])
 		data, err := r.sshCli.DialAndExecute(strings.Split(brokers[id], ":")[0], NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir))
 		if err != nil {
-			fmt.Printf("Error while executing command on broker - %v\n", err)
+			logger.Errorf("Error while executing command on broker - %v\n", err)
 			return nil, err
 		}
-		fmt.Println("Fetching the stale topics")
+		logger.Info("Fetching the stale topics")
 		topics := strings.Split(data.String(), "\n")
 		err = r.mapTopics(topicMap, topics)
 		if err != nil {
-			fmt.Printf("Error while reading topics in broker %v - %v\n", id, err)
+			logger.Errorf("Error while reading topics in broker %v - %v\n", id, err)
 			return nil, err
 		}
 	}
@@ -63,14 +64,14 @@ func (r *kafkaRemoteClient) getFullyStaleTopics(topicMap map[string]int) ([]stri
 	var staleTopics []string
 	topicDetails, err := r.ListTopicDetails()
 	if err != nil {
-		fmt.Printf("Error while fetching topic details - %v\n", err)
+		logger.Errorf("Error while fetching topic details - %v\n", err)
 		return nil, err
 	}
 
 	for topic := range topicMap {
 		detail, ok := topicDetails[topic]
 		if !ok {
-			fmt.Printf("Topic cannot be processed as it is not returned by the list api %v - %v\n", topic, err)
+			logger.Debugf("Topic cannot be processed as it is not returned by the list api %v - %v\n", topic, err)
 			continue
 		}
 

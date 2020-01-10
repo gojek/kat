@@ -1,9 +1,10 @@
 package util_test
 
 import (
+	"testing"
+
 	"github.com/gojekfarm/kat/util"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestListFilterHandlesEmptyList(t *testing.T) {

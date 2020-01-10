@@ -1,11 +1,13 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
 )
 
 type reassignPartitions struct {
+	BaseCmd
 	topics             string
 	brokerIds          string
 	zookeeper          string
@@ -16,17 +18,17 @@ type reassignPartitions struct {
 }
 
 var reassignPartitionsCmd = &cobra.Command{
-	Use:    "reassign-partitions",
-	Short:  "Reassigns the partitions for topics",
-	PreRun: loadTopicCli,
+	Use:   "reassign-partitions",
+	Short: "Reassigns the partitions for topics",
 	Run: func(command *cobra.Command, args []string) {
-		r := reassignPartitions{topics: Cobra.GetCmdArg("topics"), brokerIds: Cobra.GetCmdArg("broker-ids"),
-			zookeeper: Cobra.GetCmdArg("zookeeper"), batch: Cobra.GetIntArg("batch"),
-			timeoutPerBatchInS: Cobra.GetIntArg("timeout-per-batch"), pollIntervalInS: Cobra.GetIntArg("status-poll-interval"),
-			throttle: Cobra.GetIntArg("throttle")}
+		cobraUtil := util.NewCobraUtil(command)
+		baseCmd := Init(cobraUtil)
+		r := reassignPartitions{BaseCmd: baseCmd, topics: cobraUtil.GetStringArg("topics"), brokerIds: cobraUtil.GetStringArg("broker-ids"),
+			zookeeper: cobraUtil.GetStringArg("zookeeper"), batch: cobraUtil.GetIntArg("batch"),
+			timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"), pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"),
+			throttle: cobraUtil.GetIntArg("throttle")}
 		r.reassignPartitions()
 	},
-	PostRun: clearTopicCli,
 }
 
 func init() {
@@ -43,22 +45,20 @@ func init() {
 }
 
 func (r *reassignPartitions) reassignPartitions() {
-	topics, err := TopicCli.ListOnly(r.topics, true)
+	topics, err := r.TopicCli.ListOnly(r.topics, true)
 	if err != nil {
-		fmt.Printf("Error while filtering topics - %v\n", err)
-		return
+		logger.Fatalf("Error while filtering topics - %v\n", err)
 	}
 
 	if len(topics) == 0 {
-		fmt.Printf("Did not find any topic matching - %v\n", r.topics)
+		logger.Infof("Did not find any topic matching - %v\n", r.topics)
 		return
 	}
 
-	err = TopicCli.ReassignPartitions(topics, r.batch, r.timeoutPerBatchInS, r.pollIntervalInS, r.throttle, r.brokerIds, r.zookeeper)
+	err = r.TopicCli.ReassignPartitions(topics, r.batch, r.timeoutPerBatchInS, r.pollIntervalInS, r.throttle, r.brokerIds, r.zookeeper)
 	if err != nil {
-		fmt.Println("Error while reassigning partitions:")
-		fmt.Println(err)
+		logger.Errorf("Error while reassigning partitions: %s", err)
 		return
 	}
-	fmt.Println("Successfully reassigned partitions")
+	logger.Info("Successfully reassigned partitions")
 }

@@ -1,8 +1,8 @@
 package pkg
 
 import (
-	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/gojekfarm/kat/logger"
 )
 
 type SaramaClient struct {
@@ -10,8 +10,34 @@ type SaramaClient struct {
 	client sarama.Client
 }
 
-func NewSaramaClient(admin sarama.ClusterAdmin, client sarama.Client) *SaramaClient {
+func NewSaramaClient(addr []string) *SaramaClient {
+	cfg := sarama.NewConfig()
+	cfg.Version = sarama.V2_0_0_0
+
+	admin, err := sarama.NewClusterAdmin(addr, cfg)
+	if err != nil {
+		logger.Fatalf("Err on creating admin for %s: %v\n", addr, err)
+	}
+
+	client, err := sarama.NewClient(addr, cfg)
+	if err != nil {
+		logger.Fatalf("Err on creating client for %s: %v\n", addr, err)
+	}
 	return &SaramaClient{admin, client}
+}
+
+func (s *SaramaClient) CreateTopic(topic string, detail TopicDetail, validateOnly bool) error {
+	topicDetail := &sarama.TopicDetail{
+		NumPartitions:     detail.NumPartitions,
+		ReplicationFactor: detail.ReplicationFactor,
+		ReplicaAssignment: detail.ReplicaAssignment,
+		ConfigEntries:     detail.Config,
+	}
+	return s.admin.CreateTopic(topic, topicDetail, validateOnly)
+}
+
+func (s *SaramaClient) CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error {
+	return s.admin.CreatePartitions(topic, count, assignment, validateOnly)
 }
 
 func (s *SaramaClient) ListBrokers() map[int]string {
@@ -26,7 +52,7 @@ func (s *SaramaClient) ListBrokers() map[int]string {
 func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 	topics, err := s.admin.ListTopics()
 	if err != nil {
-		fmt.Printf("Err while retrieving Topic details: %detail\n", err)
+		logger.Errorf("Err while retrieving Topic details: %detail\n", err)
 		return nil, err
 	}
 
@@ -47,9 +73,9 @@ func (s *SaramaClient) DeleteTopic(topics []string) error {
 	for _, topic := range topics {
 		err := s.admin.DeleteTopic(topic)
 		if err != nil {
-			fmt.Printf("Error while deleting topic %v- %v\n", topic, err)
+			logger.Errorf("Error while deleting topic %v- %v\n", topic, err)
 		} else {
-			fmt.Printf("Deleted topic - %v\n", topic)
+			logger.Infof("Deleted topic - %v\n", topic)
 		}
 	}
 	return nil
@@ -58,7 +84,7 @@ func (s *SaramaClient) DeleteTopic(topics []string) error {
 func (s *SaramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error) {
 	metadata, err := s.admin.DescribeTopics(topics)
 	if err != nil {
-		fmt.Printf("Err while retrieving Topic metadata: %v\n", err)
+		logger.Errorf("Err while retrieving Topic metadata: %v\n", err)
 		return nil, err
 	}
 
@@ -89,7 +115,7 @@ func (s *SaramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata,
 func (s *SaramaClient) UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error {
 	err := s.admin.AlterConfig(sarama.ConfigResourceType(resourceType), name, entries, validateOnly)
 	if err != nil {
-		fmt.Printf("Error while changing config for topic %v - %v\n", name, err)
+		logger.Errorf("Error while changing config for topic %v - %v\n", name, err)
 	}
 	return err
 }
@@ -98,14 +124,14 @@ func (s *SaramaClient) GetTopicResourceType() int {
 	return int(sarama.TopicResource)
 }
 
-func (s *SaramaClient) ShowConfig(resource ConfigResource) ([]ConfigEntry, error) {
+func (s *SaramaClient) GetConfig(resource ConfigResource) ([]ConfigEntry, error) {
 	entries, err := s.admin.DescribeConfig(sarama.ConfigResource{
 		Type:        sarama.ConfigResourceType(resource.Type),
 		Name:        resource.Name,
 		ConfigNames: resource.ConfigNames,
 	})
 	if err != nil {
-		fmt.Printf("Error while retrieving config for %v - %v\n", resource.Name, err)
+		logger.Errorf("Error while retrieving config for %v - %v\n", resource.Name, err)
 		return nil, err
 	}
 

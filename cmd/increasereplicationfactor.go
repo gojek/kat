@@ -1,11 +1,13 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/util"
 	"github.com/spf13/cobra"
 )
 
 type increaseReplication struct {
+	BaseCmd
 	topics             string
 	replicationFactor  int
 	numOfBrokers       int
@@ -17,17 +19,17 @@ type increaseReplication struct {
 }
 
 var increaseReplicationFactorCmd = &cobra.Command{
-	Use:    "increase-replication-factor",
-	Short:  "Increases the replication factor for the given topics by the given number",
-	PreRun: loadTopicCli,
+	Use:   "increase-replication-factor",
+	Short: "Increases the replication factor for the given topics by the given number",
 	Run: func(command *cobra.Command, args []string) {
-		i := increaseReplication{topics: Cobra.GetCmdArg("topics"), replicationFactor: Cobra.GetIntArg("replication-factor"), numOfBrokers: Cobra.GetIntArg("num-of-brokers"),
-			zookeeper: Cobra.GetCmdArg("zookeeper"), batch: Cobra.GetIntArg("batch"),
-			timeoutPerBatchInS: Cobra.GetIntArg("timeout-per-batch"), pollIntervalInS: Cobra.GetIntArg("status-poll-interval"),
-			throttle: Cobra.GetIntArg("throttle")}
+		cobraUtil := util.NewCobraUtil(command)
+		baseCmd := Init(cobraUtil)
+		i := increaseReplication{BaseCmd: baseCmd, topics: cobraUtil.GetStringArg("topics"), replicationFactor: cobraUtil.GetIntArg("replication-factor"), numOfBrokers: cobraUtil.GetIntArg("num-of-brokers"),
+			zookeeper: cobraUtil.GetStringArg("zookeeper"), batch: cobraUtil.GetIntArg("batch"),
+			timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"), pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"),
+			throttle: cobraUtil.GetIntArg("throttle")}
 		i.increaseReplicationFactor()
 	},
-	PostRun: clearTopicCli,
 }
 
 func init() {
@@ -46,21 +48,20 @@ func init() {
 }
 
 func (i *increaseReplication) increaseReplicationFactor() {
-	topics, err := TopicCli.ListOnly(i.topics, true)
+	topics, err := i.TopicCli.ListOnly(i.topics, true)
 	if err != nil {
-		fmt.Printf("Error while filtering topics - %v\n", err)
-		return
+		logger.Fatalf("Error while filtering topics - %v\n", err)
 	}
 
 	if len(topics) == 0 {
-		fmt.Printf("Did not find any topic matching - %v\n", i.topics)
+		logger.Infof("Did not find any topic matching - %v\n", i.topics)
 		return
 	}
 
-	err = TopicCli.IncreaseReplicationFactor(topics, i.replicationFactor, i.numOfBrokers, i.batch, i.timeoutPerBatchInS, i.pollIntervalInS, i.throttle, i.zookeeper)
+	err = i.TopicCli.IncreaseReplicationFactor(topics, i.replicationFactor, i.numOfBrokers, i.batch, i.timeoutPerBatchInS, i.pollIntervalInS, i.throttle, i.zookeeper)
 	if err != nil {
-		fmt.Printf("Error while increasing replication factor: %v\n", err)
+		logger.Fatalf("Error while increasing replication factor: %v\n", err)
 		return
 	}
-	fmt.Println("Successfully increased replication factor")
+	logger.Info("Successfully increased replication factor")
 }

@@ -1,26 +1,29 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/util"
 
 	"github.com/spf13/cobra"
 )
 
 type alterConfig struct {
+	BaseCmd
 	config string
 	topics []string
 }
 
 var alterConfigCmd = &cobra.Command{
-	Use:    "alter",
-	Short:  "alter the config for the given topics",
-	PreRun: loadTopicCli,
+	Use:   "alter",
+	Short: "alter the config for the given topics",
 	Run: func(command *cobra.Command, args []string) {
-		a := alterConfig{config: Cobra.GetCmdArg("config"), topics: Cobra.GetTopicNames()}
+		cobraUtil := util.NewCobraUtil(command)
+		baseCmd := Init(cobraUtil)
+		a := alterConfig{BaseCmd: baseCmd, config: cobraUtil.GetStringArg("config"), topics: cobraUtil.GetTopicNames()}
 		a.alterConfig()
 	},
-	PostRun: clearTopicCli,
 }
 
 func init() {
@@ -30,9 +33,9 @@ func init() {
 
 func (a *alterConfig) alterConfig() {
 	configMap := configMap(a.config)
-	err := TopicCli.UpdateConfig(a.topics, configMap, false)
+	err := a.TopicCli.UpdateConfig(a.topics, configMap, false)
 	if err != nil {
-		fmt.Printf("Error while altering config - %v\n", err)
+		logger.Fatalf("Error while altering config - %v\n", err)
 	}
 }
 

@@ -20,7 +20,7 @@ build:
 	go mod download
 	go build -o kat
 
-check-quality: lint fmt vet
+check-quality: lint fmt imports vet
 
 lint:
 	@if [[ `golint $(ALL_PACKAGES) | { grep -vwE "exported (var|function|method|type|const) \S+ should have comment" || true; } | wc -l | tr -d ' '` -ne 0 ]]; then \
@@ -31,5 +31,21 @@ lint:
 fmt:
 	gofmt -l -s -w $(SOURCE_DIRS)
 
+imports:
+	./scripts/lint.sh check_imports
+
+fix_imports:
+	goimports -l -w .
+
 vet:
 	go vet ./...
+
+test-coverage:
+	mkdir -p ./out
+	@echo "mode: count" > coverage-all.out
+	$(foreach pkg, $(ALL_PACKAGES),\
+	go test -coverprofile=coverage.out -covermode=count $(pkg);\
+	tail -n +2 coverage.out >> coverage-all.out;)
+	GO111MODULE=on go tool cover -html=coverage-all.out -o ./out/coverage.html
+	@echo "---"
+	cat ./out/coverage.html | grep "<option" | cut -d ">" -f2 | cut -d "<" -f1 | grep -v "mock" | grep -v "config" | grep -v "stub"

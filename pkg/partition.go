@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gojekfarm/kat/util"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/util"
 )
 
 type executor interface {
@@ -162,7 +164,7 @@ func (p *Partition) verifyAssignmentCompletion(batchID int) error {
 	verificationOutput := strings.Split(verificationData.String(), "\n")
 	var errorArray []string
 	for _, result := range verificationOutput {
-		fmt.Println(result)
+		logger.Info(result)
 		if strings.Contains(result, "Status") || strings.Contains(result, "Throttle was removed.") {
 			continue
 		}
@@ -178,17 +180,17 @@ func (p *Partition) verifyAssignmentCompletion(batchID int) error {
 }
 
 func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchID int) error {
-	fmt.Printf("Polling partition reassignment status until %v seconds\n", timeoutInS)
+	logger.Infof("Polling partition reassignment status until %v seconds\n", timeoutInS)
 	num := math.Ceil(float64(timeoutInS) / float64(pollIntervalInS))
 	var err error
 
 	for i := 0; i < int(num); i++ {
-		fmt.Println("Verifying Partition Reassignment ...")
+		logger.Info("Verifying Partition Reassignment ...")
 		err = p.verifyAssignmentCompletion(batchID)
 		if err == nil {
 			break
 		}
-		fmt.Println("---------------------------------------------------------")
+		logger.Println("---------------------------------------------------------")
 		time.Sleep(time.Duration(pollIntervalInS) * time.Second)
 	}
 
@@ -212,7 +214,7 @@ func (p *Partition) reassignForBatch(batch []*TopicMetadata, batchID, replicatio
 		return err
 	}
 
-	fmt.Println(reassignmentData.String())
+	logger.Info(reassignmentData.String())
 	return nil
 }
 

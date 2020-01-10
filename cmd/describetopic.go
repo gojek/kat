@@ -2,24 +2,28 @@ package cmd
 
 import (
 	"fmt"
+
+	"github.com/gojekfarm/kat/logger"
 	"github.com/gojekfarm/kat/pkg"
+	"github.com/gojekfarm/kat/util"
 
 	"github.com/spf13/cobra"
 )
 
 type describeTopic struct {
+	BaseCmd
 	topics []string
 }
 
 var describeTopicCmd = &cobra.Command{
-	Use:    "describe",
-	Short:  "Describes the given topic",
-	PreRun: loadTopicCli,
+	Use:   "describe",
+	Short: "Describes the given topic",
 	Run: func(command *cobra.Command, args []string) {
-		d := describeTopic{topics: Cobra.GetTopicNames()}
+		cobraUtil := util.NewCobraUtil(command)
+		baseCmd := Init(cobraUtil)
+		d := describeTopic{BaseCmd: baseCmd, topics: cobraUtil.GetTopicNames()}
 		d.describeTopic()
 	},
-	PostRun: clearTopicCli,
 }
 
 func init() {
@@ -28,10 +32,9 @@ func init() {
 }
 
 func (d *describeTopic) describeTopic() {
-	metadata, err := TopicCli.Describe(d.topics)
+	metadata, err := d.TopicCli.Describe(d.topics)
 	if err != nil {
-		fmt.Printf("Error while retrieving topic metadata - %v\n", err)
-		return
+		logger.Fatalf("Error while retrieving topic metadata - %v\n", err)
 	}
 	printConfigs(metadata)
 }

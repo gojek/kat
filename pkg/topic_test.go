@@ -2,9 +2,10 @@ package pkg
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestTopic_ListSuccess(t *testing.T) {
@@ -128,9 +129,9 @@ func TestTopic_ShowConfigSuccess(t *testing.T) {
 		},
 	}
 
-	kafkaClient.On("ShowConfig", configResource).Return(expectedConfigEntries, nil)
+	kafkaClient.On("GetConfig", configResource).Return(expectedConfigEntries, nil)
 
-	configEntries, err := topicCli.ShowConfig(topic)
+	configEntries, err := topicCli.GetConfig(topic)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedConfigEntries, configEntries)
 	kafkaClient.AssertExpectations(t)
@@ -149,9 +150,9 @@ func TestTopic_ShowConfigFailure(t *testing.T) {
 		ConfigNames: nil,
 	}
 
-	kafkaClient.On("ShowConfig", configResource).Return([]ConfigEntry{}, expectedErr)
+	kafkaClient.On("GetConfig", configResource).Return([]ConfigEntry{}, expectedErr)
 
-	_, err = topicCli.ShowConfig(topic)
+	_, err = topicCli.GetConfig(topic)
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	kafkaClient.AssertExpectations(t)
@@ -190,6 +191,64 @@ func TestTopic_DeleteFailure(t *testing.T) {
 	kafkaClient.On("DeleteTopic", topics).Return(errors.New("error"))
 
 	err := topicCli.Delete(topics)
+
+	assert.Error(t, err)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_CreateSuccess(t *testing.T) {
+	kafkaClient := &MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	topicName := "topic-1"
+	detail := TopicDetail{}
+	validateOnly := false
+	kafkaClient.On("CreateTopic", topicName, detail, validateOnly).Return(nil)
+
+	err := topicCli.Create(topicName, detail, validateOnly)
+
+	assert.NoError(t, err)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_CreateFailure(t *testing.T) {
+	kafkaClient := &MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	topicName := "topic-1"
+	detail := TopicDetail{}
+	validateOnly := false
+	kafkaClient.On("CreateTopic", topicName, detail, validateOnly).Return(errors.New("error"))
+
+	err := topicCli.Create(topicName, detail, validateOnly)
+
+	assert.Error(t, err)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_CreatePartitionsSuccess(t *testing.T) {
+	kafkaClient := &MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	topicName := "topic-1"
+	count := int32(10)
+	assignment := [][]int32{}
+	validateOnly := false
+	kafkaClient.On("CreatePartitions", topicName, count, assignment, validateOnly).Return(nil)
+
+	err := topicCli.CreatePartitions(topicName, count, assignment, validateOnly)
+
+	assert.NoError(t, err)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_CreatePartitionsFailure(t *testing.T) {
+	kafkaClient := &MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	topicName := "topic-1"
+	count := int32(10)
+	assignment := [][]int32{}
+	validateOnly := false
+	kafkaClient.On("CreatePartitions", topicName, count, assignment, validateOnly).Return(errors.New("error"))
+
+	err := topicCli.CreatePartitions(topicName, count, assignment, validateOnly)
 
 	assert.Error(t, err)
 	kafkaClient.AssertExpectations(t)

@@ -3,9 +3,10 @@ package pkg
 import (
 	"bytes"
 	"fmt"
-	"golang.org/x/crypto/ssh"
 	"io/ioutil"
 	"net"
+
+	"golang.org/x/crypto/ssh"
 )
 
 type SSHClient struct {

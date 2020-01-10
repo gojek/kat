@@ -6,6 +6,16 @@ type MockKafkaAPIClient struct {
 	mock.Mock
 }
 
+func (m *MockKafkaAPIClient) CreateTopic(topic string, detail TopicDetail, validateOnly bool) error {
+	args := m.Called(topic, detail, validateOnly)
+	return args.Error(0)
+}
+
+func (m *MockKafkaAPIClient) CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error {
+	args := m.Called(topic, count, assignment, validateOnly)
+	return args.Error(0)
+}
+
 func (m *MockKafkaAPIClient) DeleteTopic(topics []string) error {
 	args := m.Called(topics)
 	return args.Error(0)
@@ -36,7 +46,7 @@ func (m *MockKafkaAPIClient) GetTopicResourceType() int {
 	return args.Int(0)
 }
 
-func (m *MockKafkaAPIClient) ShowConfig(resource ConfigResource) ([]ConfigEntry, error) {
+func (m *MockKafkaAPIClient) GetConfig(resource ConfigResource) ([]ConfigEntry, error) {
 	args := m.Called(resource)
 	return args.Get(0).([]ConfigEntry), args.Error(1)
 }

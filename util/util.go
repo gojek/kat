@@ -16,3 +16,12 @@ func Filter(list []string, regex string, include bool) ([]string, error) {
 	}
 	return filteredList, nil
 }
+
+func Contains(list []string, element string) bool {
+	for _, i := range list {
+		if i == element {
+			return true
+		}
+	}
+	return false
+}

@@ -2,9 +2,10 @@ package pkg
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/gojekfarm/kat/util"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestFindTopicsCmd_Get_ReturnsFilesOlderThanDate(t *testing.T) {

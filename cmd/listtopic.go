@@ -2,35 +2,41 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gojekfarm/kat/pkg"
+
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/util"
 	"github.com/kevinburke/ssh_config"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
 type listTopic struct {
+	BaseCmd
 	replicationFactor int
 	lastWrite         int64
 	dataDir           string
-	sshPort           string
-	sshKeyFilePath    string
 }
 
 var listTopicCmd = &cobra.Command{
-	Use:    "list",
-	Short:  "Lists the topics satisfying the passed criteria if any",
-	PreRun: loadTopicCli,
+	Use:   "list",
+	Short: "Lists the topics satisfying the passed criteria if any",
 	Run: func(command *cobra.Command, args []string) {
+		cobraUtil := util.NewCobraUtil(command)
+		lastWrite := int64(cobraUtil.GetIntArg("last-write"))
+		var baseCmd BaseCmd
+		if lastWrite == 0 {
+			baseCmd = Init(cobraUtil)
+		} else {
+			baseCmd = Init(cobraUtil, WithSSH())
+		}
+
 		l := listTopic{
-			replicationFactor: Cobra.GetIntArg("replication-factor"),
-			lastWrite:         int64(Cobra.GetIntArg("last-write")),
-			dataDir:           Cobra.GetCmdArg("data-dir"),
-			sshPort:           Cobra.GetCmdArg("ssh-port"),
-			sshKeyFilePath:    Cobra.GetCmdArg("ssh-key-file-path"),
+			BaseCmd:           baseCmd,
+			replicationFactor: cobraUtil.GetIntArg("replication-factor"),
+			lastWrite:         lastWrite,
+			dataDir:           cobraUtil.GetStringArg("data-dir"),
 		}
 		l.listTopic()
 	},
-	PostRun: clearTopicCli,
 }
 
 func init() {
@@ -45,41 +51,46 @@ func (l *listTopic) listTopic() {
 	if l.lastWrite != 0 {
 		l.listLastWrittenTopics()
 	} else {
-		topicDetails, err := TopicCli.List()
+		topicDetails, err := l.TopicCli.List()
 		if err != nil {
-			fmt.Printf("Error while fetching topic list - %v\n", err)
+			logger.Fatalf("Error while fetching topic list - %v\n", err)
+		}
+		if len(topicDetails) == 0 {
+			logger.Info("No topics found.")
 			return
 		}
-
+		var topics []string
 		for topicDetail := range topicDetails {
-			if l.replicationFactor != 0 {
-				if int(topicDetails[topicDetail].ReplicationFactor) == l.replicationFactor {
-					fmt.Println(topicDetail)
-				}
+			if l.replicationFactor == 0 {
+				topics = append(topics, topicDetail)
 			} else {
-				fmt.Println(topicDetail)
+				if int(topicDetails[topicDetail].ReplicationFactor) == l.replicationFactor {
+					topics = append(topics, topicDetail)
+				}
 			}
 		}
+		printTopics(topics)
 	}
 }
 
 func (l *listTopic) listLastWrittenTopics() {
-	var err error
-	keyfile, _ := homedir.Expand(l.sshKeyFilePath)
-	TopicCli, err = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetSaramaClient("broker-list")),
-		pkg.WithSSHClient(ssh_config.Get("*", "User"), l.sshPort, keyfile))
+	topics, err := l.TopicCli.ListLastWrittenTopics(l.lastWrite, l.dataDir)
 	if err != nil {
-		fmt.Printf("Error while creating kafka client - %v\n", err)
+		logger.Errorf("Error while fetching topic list - %v\n", err)
 		return
 	}
+	if len(topics) == 0 {
+		logger.Info("No topics found.")
+		return
+	}
+	printTopics(topics)
+	return
+}
 
-	topics, err := TopicCli.ListLastWrittenTopics(l.lastWrite, l.dataDir)
-	if err != nil {
-		fmt.Printf("Error while fetching topic list - %v\n", err)
-		return
-	}
+func printTopics(topics []string) {
+	fmt.Println("------------------------------------------------------------")
 	for _, topic := range topics {
 		fmt.Println(topic)
 	}
-	return
+	fmt.Println("------------------------------------------------------------")
 }

@@ -1,7 +1,7 @@
 package pkg
 
 import (
-	"fmt"
+	"github.com/gojekfarm/kat/logger"
 	"github.com/gojekfarm/kat/util"
 )
 
@@ -11,15 +11,17 @@ type Topic struct {
 }
 
 type TopicCli interface {
+	Create(topic string, detail TopicDetail, validateOnly bool) error
 	List() (map[string]TopicDetail, error)
 	ListLastWrittenTopics(int64, string) ([]string, error)
 	ListOnly(regex string, include bool) ([]string, error)
 	Delete(topics []string) error
 	Describe(topics []string) ([]*TopicMetadata, error)
-	ShowConfig(topic string) ([]ConfigEntry, error)
+	GetConfig(topic string) ([]ConfigEntry, error)
 	UpdateConfig(topics []string, configMap map[string]*string, validateOnly bool) error
 	IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error
 	ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error
+	CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error
 }
 
 func NewTopic(apiClient KafkaAPIClient, opts ...TopicOpts) (*Topic, error) {
@@ -45,12 +47,16 @@ func WithSSHClient(user, port, keyfile string) TopicOpts {
 		}
 		kafkaSSHClient, err := NewKafkaRemoteClient(t.apiClient, sshClient)
 		if err != nil {
-			fmt.Printf("Error while creating kafka remote client - %v\n", err)
+			logger.Errorf("Error while creating kafka remote client - %v\n", err)
 			return err
 		}
 		t.sshClient = kafkaSSHClient
 		return nil
 	}
+}
+
+func (t *Topic) Create(topic string, detail TopicDetail, validateOnly bool) error {
+	return t.apiClient.CreateTopic(topic, detail, validateOnly)
 }
 
 func (t *Topic) List() (map[string]TopicDetail, error) {
@@ -89,17 +95,17 @@ func (t *Topic) UpdateConfig(topics []string, configMap map[string]*string, vali
 	for _, topicName := range topics {
 		err := t.apiClient.UpdateConfig(t.apiClient.GetTopicResourceType(), topicName, configMap, validateOnly)
 		if err != nil {
-			fmt.Printf("Err while updating config for topic - %v: %v\n", topicName, err)
+			logger.Errorf("Err while updating config for topic - %v: %v\n", topicName, err)
 			return err
 		}
-		fmt.Printf("Config was successfully updated for topic - %v\n", topicName)
+		logger.Infof("Config was successfully updated for topic - %v\n", topicName)
 	}
 	return nil
 }
 
-func (t *Topic) ShowConfig(topic string) ([]ConfigEntry, error) {
+func (t *Topic) GetConfig(topic string) ([]ConfigEntry, error) {
 	configResource := ConfigResource{Name: topic, Type: t.apiClient.GetTopicResourceType()}
-	return t.apiClient.ShowConfig(configResource)
+	return t.apiClient.GetConfig(configResource)
 }
 
 func (t *Topic) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error {
@@ -109,8 +115,12 @@ func (t *Topic) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, p
 func (t *Topic) IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error {
 	metadata, err := t.Describe(topics)
 	if err != nil {
-		fmt.Printf("Error while fetching topic metadata: %v\n", err)
+		logger.Errorf("Error while fetching topic metadata: %v\n", err)
 		return err
 	}
 	return NewPartition(zookeeper).IncreaseReplication(metadata, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle)
+}
+
+func (t *Topic) CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error {
+	return t.apiClient.CreatePartitions(topic, count, assignment, validateOnly)
 }

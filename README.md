@@ -1,138 +1,169 @@
 # KAT
 
-`Kafka Admin Tool` provides an easy interface to perform admin operations on kafka.
+Kafka Admin Tool provides an interface to perform many admin operations on kafka in a straight-forward manner.
 
-### Admin operations available
-- List topics
-- Describe topics
-- Delete topics
-- Increase replication factor of existing topics
-- Reassign partitions for topics
-- Show Config for topics
-- Alter Config for topics
-- Mirror topic configurations from source to destination cluster
-
-### Installation
-1. ```go get -u github.com/gojekfarm/kat```
-2. Build the project -- 
-```make```
-3. Multiple kafka cluster can be created in local environment using docker-compose
-```docker-compose up -d```
-
-#### Using Homebrew
-    
+## Installation
+### Using Homebrew    
 ```
 brew tap gojek/stable
 brew install kat
 ```
 
-### Usage
-*List all topics in a kafka cluster*
+### Others
+1. Download the project -- ```go get -u github.com/gojekfarm/kat```
+2. Build -- ```make```
 
-```./kat topic list --broker-list "broker1,broker2"```
+### Local Dev/Testing
+* Unit tests - ```make test```
+* Manual - Two kafka clusters can be created in local environment using docker-compose - ```docker-compose up -d```. Commands can be run against these clusters for testing
 
-*List all topics with a particular replication factor*
+## Admin operations available
+- [List Topics](#list-topics)
+- [Describe Topics](#describe-topics)
+- [Delete Topics](#delete-topics)
+- [Increase Replication Factor](#increase-replication-factor)
+- [Reassign Partitions](#reassign-partitions)
+- [Show Topic Configs](#show-topic-configs)
+- [Alter Topic Configs](#alter-topic-configs)
+- [Mirror Topic Configs from Source to Destination Cluster](#mirror-topic-configs-from-source-to-destination-cluster)
 
-```./kat topic list --broker-list "broker1,broker2" --replication-factor <r>```
-
-*List all topics with last write time before given time (unused/stale topics)*
-
-```./kat topic list --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>```
-
-*Describe topics*
-
-```./kat topic describe --broker-list "broker1,broker2" --topics "topic1,topic2"```
-
-*Delete topics*
-
-- All the topics that matches the whitelist regex will get deleted
-    ```./kat topic delete --broker-list="broker" --topic-whitelist=test```
-
-- All the topics that does not match the blacklist regex will get deleted
-
-    ```./kat topic delete --broker-list="broker" --topic-blacklist=test```
-
-- All the topics which received data before the given time and matches whitelist regex will get deleted (unused/staled)
-
-    ```./kat topic delete --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-whitelist=test```
-
-- All the topics which received data before the given time and does not match the blacklist regex will get deleted (unused/staled)
-
-    ```./kat topic delete --broker-list="broker" --last-write=<epochtime> --data-dir=<kafka logs directory>  --topic-blacklist=test```
-
-*Increase replication factor for topics*
-
-```./kat topic increase-replication-factor --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1|topic2.*" --replication-factor <r> --num-of-brokers <n> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>```
-
-*Reassign Partitions for topics*
-
-```./kat topic reassign-partitions --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1|topic2.*" --broker-ids <i> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>```
-
-*Show Config for topics*
-
-```./kat topic config show --topics "topic1,topic2" --broker-list "broker1,broker2"```
-
-*Alter Config for topics*
-
-```./kat topic config alter --topics "topic1,topic2" --broker-list "broker1,broker2" --config "retention.ms=500000000"```
-
-*Mirror topic configs from source to destination cluster*
-
-- Specify topics to mirror.
-
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --topics topic1,topic2```
-
-- Specify topics to mirror and create the topics if not present on destination cluster. ```--create-topics true``` flag is set.
-
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --topics topic1,topic2 --create-topics```
-
-- Mirror all topics and create the topics if not present
-
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --create-topics```
-
--To increase the partition count
-
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --increase-partitions```
-
--To dry run and see the changes before applying the mirror command, 
-
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --increase-partitions --dry-run```
-
--To exclude mirroring certain configs, 
-
-```./kat mirror --source-broker-ips broker1,broker2  --destination-broker-ips broker1,broker2 --exclude-configs "follower.replication.throttled.replicas,leader.replication.throttled.replicas"
+## Command Usage
+### Help
+* Display the various args accepted by each command and the corresponding defaults
+```
+kat --help
+kat <cmd> --help
 ```
 
-*Help*
+### List Topics
+* List all the topics in a cluster
+```
+kat topic list --broker-list <"broker1,broker2">
+```
 
-```./kat --help```
+* List all topics with a particular replication factor
+```
+kat topic list --broker-list <"broker1,broker2"> --replication-factor <replication factor>
+```
 
-```./kat <command> --help``` will list all the configs, their meanings and defaults per given command
+* List all topics with last write time before given time (unused/stale topics)
+```
+kat topic list --broker-list <"broker1,broker2"> --last-write=<epoch time> --data-dir=<kafka logs directory>
+```
 
-### Partition Reassignment
-```./kat topic reassign-partitions --broker-list "broker1,broker2" --zookeeper "zookeeper1,zookeeper2" --topics "topic1|topic2.*" --broker-ids <i> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>```
+Topic throughput metrics or last modified time is not available in topic metadata response from kafka. Hence, this tool has a custom implementation of ssh'ing into all the brokers and filtering through the kafka logs directory to find the topics that were not written after the given time. 
 
-This command reassigns partitions for the given topics among the passed broker ids. This can be very time consuming, if run during the busy hours of the kafka cluster, and it is not straight forward to kill the process and rollback.
+### Describe Topics
+* Describe metadata for topics
+```
+kat topic describe --broker-list <"broker1,broker2"> --topics <"topic1,topic2">
+```
 
-Hence the command accepts a batch argument with a default of 1, which will split the topics passed into batches of the given number and run the reassignment per batch. Only if a batch completes successfully within the given timeout - `timeout-per-batch`, will the next batch start.
-The status of reassignment is checked every `poll-interval` seconds until the `timeout-per-batch` exceeds. In the event of failure of any batch, the command terminates. Only the topics in the failed batch need to be debugged/rolled back.
+### Delete Topics
 
-All the rollback and reassignment json files are stored in /tmp path, one file per batch for each of rollback and reassignment. In case of any failure, running the `kafka-reassign-partitions` by passing the rollback.json for the failed batch will restore the state of those partitions.
+* Delete the topics that match the given topic-whitelist regex
+```
+kat topic delete --broker-list <"broker1,broker2"> --topic-whitelist=<*test*>
+```
 
-### Future Scope
+* Delete the topics that do not match the given topic-blacklist regex
+```
+kat topic delete --broker-list <"broker1,broker2"> --topic-blacklist=<*test*>
+```
+
+* Delete the topics that are not modified since the last-write epoch time and match the topic-whitelist regex
+```
+kat topic delete --broker-list <"broker1,broker2"> --last-write=<epoch time> --data-dir=<kafka logs directory>  --topic-whitelist=<*test*>
+```
+
+* Delete the topics that are not modified since the last-write epoch time and do not match the topic-blacklist regex
+```
+kat topic delete --broker-list <"broker1,broker2"> --last-write=<epoch time> --data-dir=<kafka logs directory>  --topic-blacklist=<*test*>
+```
+
+### Increase Replication Factor
+* Increase the replication factor of topics that match given regex
+```
+kat topic increase-replication-factor --broker-list <"broker1,broker2"> --zookeeper <"zookeeper1,zookeeper2"> --topics <"topic1|topic2.*"> --replication-factor <r> --num-of-brokers <n> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>
+```
+
+[Details](#increase-replication-factor-and-partition-reassignment-details)
+
+
+### Reassign Partitions
+* Reassign partitions for topics that match given regex
+```
+kat topic reassign-partitions --broker-list <"broker1,broker2"> --zookeeper <"zookeeper1,zookeeper2"> --topics <"topic1|topic2.*"> --broker-ids <i,j,k> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>
+```
+
+[Details](#increase-replication-factor-and-partition-reassignment-details)
+
+### Show Topic Configs
+* Show config for topics
+```
+kat topic config show --topics <"topic1,topic2"> --broker-list <"broker1,broker2">
+```
+
+### Alter Topic Configs
+* Alter config for topics
+```
+kat topic config alter --topics <"topic1,topic2"> --broker-list <"broker1,broker2"> --config <"retention.ms=500000000,segment.bytes=1000000000">
+```
+
+### Mirror Topic Configs from Source to Destination Cluster
+* Mirror all configs for topics present in both source and destination cluster
+```
+kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4">
+```
+
+* Mirror configs for topics present in both source and destination cluster, with some configs as exception
+```
+kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes">
+```
+
+* Mirror configs for topics present in source cluster, but not in destination cluster
+```
+kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics
+```
+
+* Mirror configs for topics, with increase in partition count if there is a difference
+```
+kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics --increase-partitions
+```
+
+* Preview changes that will be applied on the destination cluster after mirroring
+```
+kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics --increase-partitions --dry-run
+```
+
+#### Increase Replication Factor and Partition Reassignment Details
+[Increasing Replication Factor](https://docs.confluent.io/current/kafka/post-deployment.html#increasing-replication-factor) and [Partition Reassignment](https://www.ibm.com/support/knowledgecenter/sv/SSCVHB_1.2.0/admin/tnpi_reassign_partitions.html) are not one step processes. On a high level, the following steps need to be executed:
+
+1. Generating the reassignment.json file
+2. Executing `kafka-reassign-partitions` command
+3. Verifying the status of reassignment
+
+This tool has automation around all these steps:
+1. Topics are split into batches of the number passed in `batch` arg.
+2. Reassignment json file is created for each batch. 
+    * For increasing replication factor, this file is created using custom round-robin mechanism, that assigns leaders and ISRs per partition.
+    * For partition reassignment, this is created using `--generate` flag provided by kafka cli tool.
+3. `kafka-reassign-partitions` command is executed for each batch. 
+4. Status is polled for every `poll-interval` until the `timeout-per-batch` is reached. If the timeout breaches, the command exits. Once replication factor for all partitions in the batch are increased, then next batch is processed.
+5. The reassignment.json and rollback.json files for all the batches are stored in /tmp directory. In case of any failure, running the `kafka-reassign-partitions` by passing the rollback.json of the failed batch will restore the state of those partitions.
+
+
+## Future Scope
 - Add support for more admin operations
+- Beautify the response of list and show config commands
+- Fetch values from a kat config file instead of passing everything as cmd args
 
-## TODO
-Refactoring
-* [ ] move sarama deps, and building command/running to a baseCmd and compose it in all cmds
-* [ ] get rid of topicutil, move functions to topics struct (group behaviour: list, delete, create, update)
-* [ ] mirror, all commands should use same flags (can use config file for default value so we can pass less flags while running)
-* [ ] inject custom interface with only required functionality instead of saramaCli ()
-* [ ] add golangci lint
-* [ ] add make file (vet,lint,goimports,test with race)
-* [ ] introduce logrus with log levels
-* [ ] helper for executing shell commands
-* [ ] beautify the UI for show config command
+## Contributing
+* Raise an issue to clarify scope/questions, followed by PR
+* Follow go [guidelines](https://golang.org/doc/effective_go.html) for development
+* Ensure `make` succeeds
+
+Thanks for all the [Contributors](https://github.com/gojekfarm/kat/graphs/contributors).
 
 ## License
 
@@ -151,7 +182,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
-
-
-- update the latest release version to `https://github.com/gojek/homebrew-tap` 
-

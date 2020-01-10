@@ -2,11 +2,12 @@ package util
 
 import (
 	"bufio"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/gojekfarm/kat/logger"
 )
 
 type IO struct{}
@@ -19,7 +20,7 @@ func (i *IO) AskForConfirmation(question string) bool {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Printf("%s [y/n]: ", question)
+		logger.Printf("%s [y/n]: ", question)
 
 		response, err := reader.ReadString('\n')
 		if err != nil {

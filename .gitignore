@@ -2,3 +2,5 @@
 kat
 vendor/
 *.swp
+out/
+coverage*

@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gojekfarm/kat/pkg"
+
+	"github.com/gojekfarm/kat/logger"
 	"github.com/gojekfarm/kat/util"
 	"github.com/kevinburke/ssh_config"
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
 type deleteTopic struct {
+	BaseCmd
 	lastWrite      int64
 	dataDir        string
 	topicWhitelist string
@@ -24,26 +25,29 @@ type io interface {
 }
 
 var deleteTopicCmd = &cobra.Command{
-	Use:    "delete",
-	Short:  "Delete the topics satisfying the passed criteria if any",
-	PreRun: loadTopicCli,
+	Use:   "delete",
+	Short: "Delete the topics satisfying the passed criteria if any",
 	Run: func(command *cobra.Command, args []string) {
-		d := deleteTopic{
-			lastWrite:      int64(Cobra.GetIntArg("last-write")),
-			dataDir:        Cobra.GetCmdArg("data-dir"),
-			topicWhitelist: Cobra.GetCmdArg("topic-whitelist"),
-			topicBlacklist: Cobra.GetCmdArg("topic-blacklist"),
-			sshPort:        Cobra.GetCmdArg("ssh-port"),
-			sshKeyFilePath: Cobra.GetCmdArg("ssh-key-file-path"),
-			io:             &util.IO{},
+		cobraUtil := util.NewCobraUtil(command)
+		lastWrite := int64(cobraUtil.GetIntArg("last-write"))
+		var baseCmd BaseCmd
+		if lastWrite == 0 {
+			baseCmd = Init(cobraUtil)
+		} else {
+			baseCmd = Init(cobraUtil, WithSSH())
 		}
-		err := d.initTopicCliWithSSHClient()
-		if err != nil {
-			return
+		d := deleteTopic{
+			BaseCmd:        baseCmd,
+			lastWrite:      lastWrite,
+			dataDir:        cobraUtil.GetStringArg("data-dir"),
+			topicWhitelist: cobraUtil.GetStringArg("topic-whitelist"),
+			topicBlacklist: cobraUtil.GetStringArg("topic-blacklist"),
+			sshPort:        cobraUtil.GetStringArg("ssh-port"),
+			sshKeyFilePath: cobraUtil.GetStringArg("ssh-key-file-path"),
+			io:             &util.IO{},
 		}
 		d.deleteTopic()
 	},
-	PostRun: clearTopicCli,
 }
 
 func init() {
@@ -59,7 +63,7 @@ func (d *deleteTopic) deleteTopic() {
 	var regex string
 	var include bool
 	if ((d.topicWhitelist == "") && (d.topicBlacklist == "")) || ((d.topicWhitelist != "") && (d.topicBlacklist != "")) {
-		fmt.Printf("Any one of blacklist or whitelist should be passed.")
+		logger.Fatalf("Any one of blacklist or whitelist should be passed.")
 		return
 	}
 	if d.topicWhitelist != "" {
@@ -73,22 +77,24 @@ func (d *deleteTopic) deleteTopic() {
 	if err != nil || len(topics) == 0 {
 		return
 	}
+	fmt.Println("------------------------------------------------------------")
 	for _, topic := range topics {
 		fmt.Println(topic)
 	}
+	fmt.Println("------------------------------------------------------------")
 	confirmDelete := d.io.AskForConfirmation("Do you really want to delete the above topics?")
 	if confirmDelete {
-		err = TopicCli.Delete(topics)
+		err = d.TopicCli.Delete(topics)
 		if err != nil {
-			fmt.Printf("Error while deleting topics - %v\n", err)
+			logger.Fatalf("Error while deleting topics - %v\n", err)
 		}
 	}
 }
 
 func (d *deleteTopic) getLastWrittenTopics() ([]string, error) {
-	topics, err := TopicCli.ListLastWrittenTopics(d.lastWrite, d.dataDir)
+	topics, err := d.TopicCli.ListLastWrittenTopics(d.lastWrite, d.dataDir)
 	if err != nil {
-		fmt.Printf("Error while fetching topic list - %v\n", err)
+		logger.Errorf("Error while fetching topic list - %v\n", err)
 		return nil, err
 	}
 	return topics, nil
@@ -104,25 +110,11 @@ func (d *deleteTopic) getTopics(regex string, include bool) ([]string, error) {
 		}
 		topics, err = util.Filter(lastWrittenTopics, regex, include)
 	} else {
-		topics, err = TopicCli.ListOnly(regex, include)
+		topics, err = d.TopicCli.ListOnly(regex, include)
 	}
 	if err != nil {
-		fmt.Printf("Error while fetching topic list - %v\n", err)
+		logger.Errorf("Error while fetching topic list - %v\n", err)
 		return nil, err
 	}
 	return topics, err
-}
-
-func (d *deleteTopic) initTopicCliWithSSHClient() error {
-	keyFile, err := homedir.Expand(d.sshKeyFilePath)
-	if err != nil {
-		fmt.Printf("Error while resolving data directory - %v\n", err)
-		return err
-	}
-	TopicCli, err = pkg.NewTopic(pkg.NewSaramaClient(Cobra.GetSaramaClient("broker-list")),
-		pkg.WithSSHClient(ssh_config.Get("*", "User"), d.sshPort, keyFile))
-	if err != nil {
-		fmt.Printf("Error while creating kafka client - %v\n", err)
-	}
-	return err
 }

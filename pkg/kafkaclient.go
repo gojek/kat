@@ -51,13 +51,15 @@ type ListTopicsRequest struct {
 }
 
 type KafkaAPIClient interface {
+	CreateTopic(topic string, detail TopicDetail, validateOnly bool) error
+	CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error
 	ListBrokers() map[int]string
 	ListTopicDetails() (map[string]TopicDetail, error)
 	DeleteTopic(topics []string) error
 	DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error)
 	UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error
 	GetTopicResourceType() int
-	ShowConfig(resource ConfigResource) ([]ConfigEntry, error)
+	GetConfig(resource ConfigResource) ([]ConfigEntry, error)
 }
 
 type KafkaSSHClient interface {

@@ -1,17 +1,16 @@
 package cmd
 
 import (
-	"github.com/gojekfarm/kat/pkg"
 	"testing"
+
+	"github.com/gojekfarm/kat/pkg"
 )
 
 func TestDescribe(t *testing.T) {
-	clearTopicCli(nil, nil)
-	TopicCli = &pkg.MockTopicCli{}
+	mockTopicCli := &pkg.MockTopicCli{}
 	topics := []string{"topic1"}
-	TopicCli.(*pkg.MockTopicCli).On("Describe", topics).Return([]*pkg.TopicMetadata{}, nil).Times(1)
-	d := describeTopic{topics: topics}
+	mockTopicCli.On("Describe", topics).Return([]*pkg.TopicMetadata{}, nil).Times(1)
+	d := describeTopic{BaseCmd: BaseCmd{TopicCli: mockTopicCli}, topics: topics}
 	d.describeTopic()
-	TopicCli.(*pkg.MockTopicCli).AssertExpectations(t)
-	clearTopicCli(nil, nil)
+	mockTopicCli.AssertExpectations(t)
 }

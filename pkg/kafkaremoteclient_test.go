@@ -3,10 +3,16 @@ package pkg
 import (
 	"bytes"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"sort"
 	"testing"
+
+	"github.com/gojekfarm/kat/logger"
+	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	logger.SetupLogger("info")
+}
 
 func TestKafkaRemoteClient_ListTopics_AllPartitionsStale(t *testing.T) {
 	apiClient := &MockKafkaAPIClient{}
