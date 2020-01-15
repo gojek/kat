@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/gojekfarm/kat/logger"
 	"github.com/gojekfarm/kat/pkg"
 	"github.com/spf13/cobra"
 )
@@ -14,7 +15,9 @@ var topicCmd = &cobra.Command{
 
 func init() {
 	topicCmd.PersistentFlags().StringP("broker-list", "b", "", "Comma separated list of broker ips")
-	topicCmd.MarkPersistentFlagRequired("broker-list")
+	if err := topicCmd.MarkPersistentFlagRequired("broker-list"); err != nil {
+		logger.Fatal(err)
+	}
 
 	topicCmd.AddCommand(listTopicCmd)
 	topicCmd.AddCommand(deleteTopicCmd)

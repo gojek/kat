@@ -1,4 +1,4 @@
-all: clean check-quality test build
+all: clean check-quality golangci test build
 APP=kat
 ALL_PACKAGES=$(shell go list ./...)
 SOURCE_DIRS=$(shell go list ./... | cut -d "/" -f4 | uniq)
@@ -14,6 +14,9 @@ setup:
 
 test:
 	go test ./...
+
+testcodecov:
+	go test -coverprofile=coverage.txt -covermode=atomic ./...
 
 build:
 	@echo "Building './kat'..."
@@ -39,6 +42,10 @@ fix_imports:
 
 vet:
 	go vet ./...
+
+golangci:
+	GO111MODULE=off go get -v github.com/golangci/golangci-lint/cmd/golangci-lint
+	golangci-lint run -v --deadline 5m0s
 
 test-coverage:
 	mkdir -p ./out

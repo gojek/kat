@@ -57,14 +57,6 @@ func (s *SSHClient) DialAndExecute(address string, commands ...shellCmd) (*bytes
 	return buffer, nil
 }
 
-func (s *SSHClient) dial(address string) (*ssh.Client, error) {
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", address, s.port), s.config)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
-}
-
 func (s *SSHClient) execute(session *ssh.Session, cmd shellCmd) (*bytes.Buffer, error) {
 	defer session.Close()
 

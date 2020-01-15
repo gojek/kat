@@ -28,7 +28,9 @@ var alterConfigCmd = &cobra.Command{
 
 func init() {
 	alterConfigCmd.PersistentFlags().StringP("config", "c", "", "Comma separated list of configs, eg: key1=val1,key2=val2")
-	alterConfigCmd.MarkPersistentFlagRequired("config")
+	if err := alterConfigCmd.MarkPersistentFlagRequired("config"); err != nil {
+		logger.Fatal(err)
+	}
 }
 
 func (a *alterConfig) alterConfig() {

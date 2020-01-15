@@ -28,7 +28,9 @@ var describeTopicCmd = &cobra.Command{
 
 func init() {
 	describeTopicCmd.PersistentFlags().StringP("topics", "t", "", "Comma separated list of topic names to describe")
-	describeTopicCmd.MarkPersistentFlagRequired("topics")
+	if err := describeTopicCmd.MarkPersistentFlagRequired("topics"); err != nil {
+		logger.Fatal(err)
+	}
 }
 
 func (d *describeTopic) describeTopic() {
@@ -41,11 +43,13 @@ func (d *describeTopic) describeTopic() {
 
 func printConfigs(metadata []*pkg.TopicMetadata) {
 	for _, topicMetadata := range metadata {
-		fmt.Printf("Topic Name: %v,\nIsInternal: %v,\nPartitions:\n", (*topicMetadata).Name, (*topicMetadata).IsInternal)
+		fmt.Printf("Topic Name: %v,\nIsInternal: %v,\nPartitions:\n", topicMetadata.Name, topicMetadata.IsInternal)
 
-		partitions := (*topicMetadata).Partitions
+		partitions := topicMetadata.Partitions
 		for _, partitionMetadata := range partitions {
-			fmt.Printf("Id: %v, Leader: %v, Replicas: %v, ISR: %v, OfflineReplicas: %v\n", (*partitionMetadata).ID, (*partitionMetadata).Leader, (*partitionMetadata).Replicas, (*partitionMetadata).Isr, (*partitionMetadata).OfflineReplicas)
+			fmt.Printf("Id: %v, Leader: %v, Replicas: %v, ISR: %v, OfflineReplicas: %v\n",
+				partitionMetadata.ID, partitionMetadata.Leader, partitionMetadata.Replicas,
+				partitionMetadata.Isr, partitionMetadata.OfflineReplicas)
 		}
 		fmt.Println()
 	}

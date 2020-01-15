@@ -63,10 +63,8 @@ func (l *listTopic) listTopic() {
 		for topicDetail := range topicDetails {
 			if l.replicationFactor == 0 {
 				topics = append(topics, topicDetail)
-			} else {
-				if int(topicDetails[topicDetail].ReplicationFactor) == l.replicationFactor {
-					topics = append(topics, topicDetail)
-				}
+			} else if int(topicDetails[topicDetail].ReplicationFactor) == l.replicationFactor {
+				topics = append(topics, topicDetail)
 			}
 		}
 		printTopics(topics)
@@ -84,7 +82,6 @@ func (l *listTopic) listLastWrittenTopics() {
 		return
 	}
 	printTopics(topics)
-	return
 }
 
 func printTopics(topics []string) {

@@ -54,8 +54,7 @@ func (r *kafkaRemoteClient) mapTopics(topicMap map[string]int, topics []string) 
 		if err != nil {
 			return err
 		}
-		val, _ := topicMap[detail[0]]
-		topicMap[detail[0]] = val + i
+		topicMap[detail[0]] += i
 	}
 	return nil
 }

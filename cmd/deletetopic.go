@@ -60,21 +60,15 @@ func init() {
 }
 
 func (d *deleteTopic) deleteTopic() {
-	var regex string
-	var include bool
-	if ((d.topicWhitelist == "") && (d.topicBlacklist == "")) || ((d.topicWhitelist != "") && (d.topicBlacklist != "")) {
-		logger.Fatalf("Any one of blacklist or whitelist should be passed.")
-		return
-	}
-	if d.topicWhitelist != "" {
-		include = true
-		regex = d.topicWhitelist
-	} else if d.topicBlacklist != "" {
-		include = false
-		regex = d.topicBlacklist
+	regex, include, err := d.filterCriteria()
+	if err != nil {
+		logger.Fatal(err)
 	}
 	topics, err := d.getTopics(regex, include)
-	if err != nil || len(topics) == 0 {
+	if err != nil {
+		logger.Fatal(err)
+	}
+	if len(topics) == 0 {
 		return
 	}
 	fmt.Println("------------------------------------------------------------")
@@ -91,6 +85,20 @@ func (d *deleteTopic) deleteTopic() {
 	}
 }
 
+func (d *deleteTopic) filterCriteria() (regex string, include bool, err error) {
+	if ((d.topicWhitelist == "") && (d.topicBlacklist == "")) || ((d.topicWhitelist != "") && (d.topicBlacklist != "")) {
+		return regex, include, fmt.Errorf("any one of blacklist or whitelist should be passed")
+	}
+	if d.topicWhitelist != "" {
+		include = true
+		regex = d.topicWhitelist
+	} else if d.topicBlacklist != "" {
+		include = false
+		regex = d.topicBlacklist
+	}
+	return regex, include, nil
+}
+
 func (d *deleteTopic) getLastWrittenTopics() ([]string, error) {
 	topics, err := d.TopicCli.ListLastWrittenTopics(d.lastWrite, d.dataDir)
 	if err != nil {
@@ -101,17 +109,20 @@ func (d *deleteTopic) getLastWrittenTopics() ([]string, error) {
 }
 
 func (d *deleteTopic) getTopics(regex string, include bool) ([]string, error) {
-	var topics []string
-	var err error
 	if d.lastWrite != 0 {
 		lastWrittenTopics, err := d.getLastWrittenTopics()
 		if err != nil {
 			return nil, err
 		}
-		topics, err = util.Filter(lastWrittenTopics, regex, include)
-	} else {
-		topics, err = d.TopicCli.ListOnly(regex, include)
+		topics, err := util.Filter(lastWrittenTopics, regex, include)
+		if err != nil {
+			logger.Errorf("Error while fetching topic list - %v\n", err)
+			return nil, err
+		}
+		return topics, nil
 	}
+
+	topics, err := d.TopicCli.ListOnly(regex, include)
 	if err != nil {
 		logger.Errorf("Error while fetching topic list - %v\n", err)
 		return nil, err

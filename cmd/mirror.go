@@ -48,8 +48,12 @@ func init() {
 	mirrorCmd.PersistentFlags().String("topics-with-overrides", "true", "Mirror only the topics that have overridden configs")
 	mirrorCmd.PersistentFlags().Bool("create-topics", false, "Create the topics on destination cluster if not present and mirror the configs")
 	mirrorCmd.PersistentFlags().Bool("increase-partitions", false, "Increase the partition count of topics on destination cluster")
-	mirrorCmd.MarkPersistentFlagRequired("source-broker-ips")
-	mirrorCmd.MarkPersistentFlagRequired("destination-broker-ips")
+	if err := mirrorCmd.MarkPersistentFlagRequired("source-broker-ips"); err != nil {
+		logger.Fatal(err)
+	}
+	if err := mirrorCmd.MarkPersistentFlagRequired("destination-broker-ips"); err != nil {
+		logger.Fatal(err)
+	}
 	mirrorCmd.PersistentFlags().Bool("dry-run", false, "shows only the configs which gets updated")
 	mirrorCmd.PersistentFlags().StringSlice("exclude-configs", []string{}, "Comma separated list of topics configs need to be excluded")
 }
@@ -69,16 +73,7 @@ func (m *mirror) mirrorTopicConfigs() {
 	for topic, detail := range sourceTopics {
 		var err error
 		if destinationTopics[topic].NumPartitions == 0 {
-			if !m.createTopic {
-				logger.Infof("Topic - %v does not exist in destination cluster. Pass --create-topics flag\n", topic)
-				continue
-			}
-			if !m.dryRun {
-				err = m.destinationCli.Create(topic, detail, false)
-				if err != nil {
-					logger.Errorf("Err while creating topic %v in destination cluster - %v\n", topic, err)
-				}
-			}
+			err = m.createTopicIfEnabled(topic, detail)
 			tw.AddRow(util.MirrorStatus(topic, jsonString(detail.Config), detail.NumPartitions, detail.NumPartitions, true, m.dryRun, err))
 		} else {
 			sourceNumOfPartitions := sourceTopics[topic].NumPartitions
@@ -91,16 +86,7 @@ func (m *mirror) mirrorTopicConfigs() {
 				logger.Debugf("Configs are equal for topic - %v\n", topic)
 				continue
 			} else {
-				changelogs, err := diff.Diff(destinationCM, sourceCM)
-				if err != nil {
-					logger.Errorf("Err while comparing configs for topic %v - %v\n", topic, err)
-					continue
-				}
-
-				if !m.dryRun {
-					err = m.updateTopicInDestinationCluster(topic, sourceNumOfPartitions, destNumOfPartitions, changelogs)
-				}
-
+				changelogs, err := m.applyDiff(topic, sourceCM, destinationCM, sourceNumOfPartitions, destNumOfPartitions)
 				tw.AddRow(util.MirrorStatus(topic, fmt.Sprint(changelogs), destNumOfPartitions, sourceNumOfPartitions, false, m.dryRun, err))
 			}
 		}
@@ -109,7 +95,33 @@ func (m *mirror) mirrorTopicConfigs() {
 	tw.Render()
 }
 
-func (m *mirror) updateTopicInDestinationCluster(topic string, sourceNumOfPartitions int32, destNumOfPartitions int32, changelogs diff.Changelog) error {
+func (m *mirror) applyDiff(topic string, sourceCM, destinationCM map[string]string, sourceNumOfPartitions, destNumOfPartitions int32) (diff.Changelog, error) {
+	changelogs, err := diff.Diff(destinationCM, sourceCM)
+	if err != nil {
+		logger.Errorf("Err while comparing configs for topic %v - %v\n", topic, err)
+	} else if !m.dryRun {
+		err = m.updateTopicInDestinationCluster(topic, sourceNumOfPartitions, destNumOfPartitions, changelogs)
+	}
+
+	return changelogs, err
+}
+
+func (m *mirror) createTopicIfEnabled(topic string, detail pkg.TopicDetail) error {
+	if !m.createTopic {
+		logger.Infof("Topic - %v does not exist in destination cluster. Pass --create-topics flag\n", topic)
+		return nil
+	}
+	if !m.dryRun {
+		err := m.destinationCli.Create(topic, detail, false)
+		if err != nil {
+			logger.Errorf("Err while creating topic %v in destination cluster - %v\n", topic, err)
+		}
+		return err
+	}
+	return nil
+}
+
+func (m *mirror) updateTopicInDestinationCluster(topic string, sourceNumOfPartitions, destNumOfPartitions int32, changelogs diff.Changelog) error {
 	err := m.increasePartitionsIfEnabled(topic, sourceNumOfPartitions, destNumOfPartitions)
 	if err != nil {
 		logger.Errorf("Err while increasing partitions for topic %v - %v\n", topic, err)
@@ -127,8 +139,8 @@ func (m *mirror) updateTopicInDestinationCluster(topic string, sourceNumOfPartit
 	return err
 }
 
-func getTopicDetailsAndConfigs(cli pkg.TopicCli) (map[string]pkg.TopicDetail, map[string][]pkg.ConfigEntry, error) {
-	topics, err := cli.List()
+func getTopicDetailsAndConfigs(cli pkg.TopicCli) (topics map[string]pkg.TopicDetail, topicConfigs map[string][]pkg.ConfigEntry, err error) {
+	topics, err = cli.List()
 	if err != nil {
 		return nil, nil, fmt.Errorf("err while fetching topics - %v", err)
 	}
@@ -137,7 +149,7 @@ func getTopicDetailsAndConfigs(cli pkg.TopicCli) (map[string]pkg.TopicDetail, ma
 		return nil, nil, nil
 	}
 
-	topicConfigs := make(map[string][]pkg.ConfigEntry)
+	topicConfigs = make(map[string][]pkg.ConfigEntry)
 	for topic := range topics {
 		entries, err := cli.GetConfig(topic)
 		if err != nil {

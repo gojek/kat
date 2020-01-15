@@ -1,4 +1,5 @@
 # KAT
+[![Build Status](https://circleci.com/gh/gojekfarm/kat.svg?branch=master)](https://circleci.com/gh/gojekfarm/kat)
 
 Kafka Admin Tool provides an interface to perform many admin operations on kafka in a straight-forward manner.
 
@@ -10,12 +11,14 @@ brew install kat
 ```
 
 ### Others
-1. Download the project -- ```go get -u github.com/gojekfarm/kat```
-2. Build -- ```make```
+```
+go install github.com/gojekfarm/kat
+```
 
 ### Local Dev/Testing
-* Unit tests - ```make test```
-* Manual - Two kafka clusters can be created in local environment using docker-compose - ```docker-compose up -d```. Commands can be run against these clusters for testing
+* Clone the repo
+* Run ```make all``` to run lint checks, unit tests and build the project
+* Manual testing: Running ```docker-compose up -d``` will create 2 local kafka clusters. Commands can be run against these clusters for testing
 
 ## Admin operations available
 - [List Topics](#list-topics)

@@ -19,8 +19,10 @@ type TopicCli interface {
 	Describe(topics []string) ([]*TopicMetadata, error)
 	GetConfig(topic string) ([]ConfigEntry, error)
 	UpdateConfig(topics []string, configMap map[string]*string, validateOnly bool) error
-	IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error
-	ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error
+	IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS,
+		pollIntervalInS, throttle int, zookeeper string) error
+	ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int,
+		brokerList, zookeeper string) error
 	CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error
 }
 
@@ -108,17 +110,20 @@ func (t *Topic) GetConfig(topic string) ([]ConfigEntry, error) {
 	return t.apiClient.GetConfig(configResource)
 }
 
-func (t *Topic) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error {
+func (t *Topic) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS,
+	throttle int, brokerList, zookeeper string) error {
 	return NewPartition(zookeeper).ReassignPartitions(topics, brokerList, batch, timeoutPerBatchInS, pollIntervalInS, throttle)
 }
 
-func (t *Topic) IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error {
+func (t *Topic) IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch,
+	timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error {
 	metadata, err := t.Describe(topics)
 	if err != nil {
 		logger.Errorf("Error while fetching topic metadata: %v\n", err)
 		return err
 	}
-	return NewPartition(zookeeper).IncreaseReplication(metadata, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle)
+	return NewPartition(zookeeper).IncreaseReplication(metadata, replicationFactor, numOfBrokers, batch,
+		timeoutPerBatchInS, pollIntervalInS, throttle)
 }
 
 func (t *Topic) CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error {

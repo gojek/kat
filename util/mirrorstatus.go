@@ -13,24 +13,34 @@ type MirrorStatusRow struct {
 }
 
 func MirrorStatus(topic, config string, oldPartitionCount, newPartitionCount int32, isCreate, isDryRun bool, err error) MirrorStatusRow {
-	var action action
+	var actionType action
 	if isCreate {
-		action = create
+		actionType = create
 	} else {
-		action = update
+		actionType = update
 	}
-	var status status
+	var mirrorStatus status
 	var reason string
 	if isDryRun {
-		status = dryRun
-	} else if err == nil {
-		status = success
+		mirrorStatus = dryRun
 	} else {
-		status = failure
-		reason = err.Error()
+		if err == nil {
+			mirrorStatus = success
+		} else {
+			mirrorStatus = failure
+			reason = err.Error()
+		}
 	}
 
-	return MirrorStatusRow{topic: topic, action: action, configChange: config, oldPartitionCount: oldPartitionCount, newPartitionCount: newPartitionCount, status: status, reason: reason}
+	return MirrorStatusRow{
+		topic:             topic,
+		action:            actionType,
+		configChange:      config,
+		oldPartitionCount: oldPartitionCount,
+		newPartitionCount: newPartitionCount,
+		status:            mirrorStatus,
+		reason:            reason,
+	}
 }
 
 func (m MirrorStatusRow) FieldValues() []string {

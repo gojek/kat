@@ -58,12 +58,14 @@ func (m *MockTopicCli) UpdateConfig(topics []string, configMap map[string]*strin
 	return args.Error(0)
 }
 
-func (m *MockTopicCli) IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error {
+func (m *MockTopicCli) IncreaseReplicationFactor(topics []string, replicationFactor, numOfBrokers, batch,
+	timeoutPerBatchInS, pollIntervalInS, throttle int, zookeeper string) error {
 	args := m.Called(topics, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle, zookeeper)
 	return args.Error(0)
 }
 
-func (m *MockTopicCli) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int, brokerList, zookeeper string) error {
+func (m *MockTopicCli) ReassignPartitions(topics []string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int,
+	brokerList, zookeeper string) error {
 	args := m.Called(topics, batch, timeoutPerBatchInS, pollIntervalInS, throttle, brokerList, zookeeper)
 	return args.Error(0)
 }

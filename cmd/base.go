@@ -43,7 +43,6 @@ func WithAddr(addrConfig string) Opts {
 }
 
 func (b *BaseCmd) setTopicCli() {
-	var err error
 	addr := strings.Split(b.cobraUtil.GetStringArg(b.addrConfig), ",")
 	var opts []pkg.TopicOpts
 	if b.enableSSH {

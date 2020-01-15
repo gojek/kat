@@ -24,7 +24,8 @@ var increaseReplicationFactorCmd = &cobra.Command{
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := util.NewCobraUtil(command)
 		baseCmd := Init(cobraUtil)
-		i := increaseReplication{BaseCmd: baseCmd, topics: cobraUtil.GetStringArg("topics"), replicationFactor: cobraUtil.GetIntArg("replication-factor"), numOfBrokers: cobraUtil.GetIntArg("num-of-brokers"),
+		i := increaseReplication{BaseCmd: baseCmd, topics: cobraUtil.GetStringArg("topics"),
+			replicationFactor: cobraUtil.GetIntArg("replication-factor"), numOfBrokers: cobraUtil.GetIntArg("num-of-brokers"),
 			zookeeper: cobraUtil.GetStringArg("zookeeper"), batch: cobraUtil.GetIntArg("batch"),
 			timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"), pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"),
 			throttle: cobraUtil.GetIntArg("throttle")}
@@ -33,7 +34,8 @@ var increaseReplicationFactorCmd = &cobra.Command{
 }
 
 func init() {
-	increaseReplicationFactorCmd.PersistentFlags().StringP("topics", "t", "", "Regex to match the topics that need increase in replication factor. eg: \".*\", \"test-.*-topic\", \"topic1|topic2\"")
+	increaseReplicationFactorCmd.PersistentFlags().StringP("topics", "t", "",
+		"Regex to match the topics that need increase in replication factor. eg: \".*\", \"test-.*-topic\", \"topic1|topic2\"")
 	increaseReplicationFactorCmd.PersistentFlags().StringP("zookeeper", "z", "", "Comma separated list of zookeeper ips")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("replication-factor", "r", 0, "New Replication Factor")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("num-of-brokers", "n", 0, "Number of brokers in the cluster")
@@ -41,10 +43,18 @@ func init() {
 	increaseReplicationFactorCmd.PersistentFlags().IntP("timeout-per-batch", "", 300, "Timeout for reassignment per batch in seconds")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("status-poll-interval", "", 5, "Interval in seconds for polling for reassignment status")
 	increaseReplicationFactorCmd.PersistentFlags().IntP("throttle", "", 10000000, "Throttle for reassignment in bytes/sec")
-	increaseReplicationFactorCmd.MarkPersistentFlagRequired("topics")
-	increaseReplicationFactorCmd.MarkPersistentFlagRequired("zookeeper")
-	increaseReplicationFactorCmd.MarkPersistentFlagRequired("replication-factor")
-	increaseReplicationFactorCmd.MarkPersistentFlagRequired("num-of-brokers")
+	if err := increaseReplicationFactorCmd.MarkPersistentFlagRequired("topics"); err != nil {
+		logger.Fatal(err)
+	}
+	if err := increaseReplicationFactorCmd.MarkPersistentFlagRequired("zookeeper"); err != nil {
+		logger.Fatal(err)
+	}
+	if err := increaseReplicationFactorCmd.MarkPersistentFlagRequired("replication-factor"); err != nil {
+		logger.Fatal(err)
+	}
+	if err := increaseReplicationFactorCmd.MarkPersistentFlagRequired("num-of-brokers"); err != nil {
+		logger.Fatal(err)
+	}
 }
 
 func (i *increaseReplication) increaseReplicationFactor() {
@@ -58,7 +68,8 @@ func (i *increaseReplication) increaseReplicationFactor() {
 		return
 	}
 
-	err = i.TopicCli.IncreaseReplicationFactor(topics, i.replicationFactor, i.numOfBrokers, i.batch, i.timeoutPerBatchInS, i.pollIntervalInS, i.throttle, i.zookeeper)
+	err = i.TopicCli.IncreaseReplicationFactor(topics, i.replicationFactor, i.numOfBrokers, i.batch,
+		i.timeoutPerBatchInS, i.pollIntervalInS, i.throttle, i.zookeeper)
 	if err != nil {
 		logger.Fatalf("Error while increasing replication factor: %v\n", err)
 		return

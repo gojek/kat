@@ -1,5 +1,38 @@
 version: 2
 jobs:
+  build:
+    working_directory: /go/src/github.com/gojekfarm/kat
+    docker:
+    - image: circleci/golang:1.11
+    steps:
+    - checkout
+    - setup_remote_docker:
+        docker_layer_caching: false
+    - restore_cache:
+        keys:
+        - vendor-pkg-{{ checksum "go.sum" }}
+        - vendor-pkg-
+    - run:
+        name: Install Dependencies
+        command: |
+          make setup
+    - save_cache:
+        paths:
+        - ./vendor
+        - "/go/pkg"
+        key: vendor-pkg-{{ checksum "go.sum" }}
+    - run:
+        name: Check Quality
+        command: |
+          env GO111MODULE=on go mod verify
+          make clean check-quality golangci
+    - run:
+        name: Build
+        command: |
+          env GO111MODULE=on go mod verify
+          make clean build
+
+
   test:
     working_directory: /go/src/github.com/gojekfarm/kat
     docker:
@@ -25,7 +58,7 @@ jobs:
         name: Run tests
         command: |
           env GO111MODULE=on go mod verify
-          env GO111MODULE=on CGO_ENABLED=0 make
+          make test
 
 
   release:
@@ -52,14 +85,17 @@ jobs:
       - run:
           name: Release go binary
           command: |
-            env GO111MODULE=on CGO_ENABLED=0 make
+            make
             curl -sL https://git.io/goreleaser | bash
 
 workflows:
   version: 2
-  build_and_test:
+  build-test-release:
     jobs:
-    - test
+    - build
+    - test:
+        requires:
+          - build
     - release:
         requires:
           - test

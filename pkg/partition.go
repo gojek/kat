@@ -53,16 +53,21 @@ type kafkaPartitionReassignment struct {
 	rollbackJSONFile     string
 }
 
-func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchID int) (string, []string) {
-	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--broker-list", brokerList, "--topics-to-move-json-file", fmt.Sprintf(k.topicsToMoveJSONFile, batchID), "--generate"}
+const kafkaReassignPartitions = "kafka-reassign-partitions"
+
+func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchID int) (cmd string, args []string) {
+	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--broker-list", brokerList,
+		"--topics-to-move-json-file", fmt.Sprintf(k.topicsToMoveJSONFile, batchID), "--generate"}
 }
 
-func (k *kafkaPartitionReassignment) execute(zookeeper string, batchID, throttle int) (string, []string) {
-	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--reassignment-json-file", fmt.Sprintf(k.reassignmentJSONFile, batchID), "--throttle", strconv.FormatInt(int64(throttle), 10), "--execute"}
+func (k *kafkaPartitionReassignment) execute(zookeeper string, batchID, throttle int) (cmd string, args []string) {
+	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--reassignment-json-file",
+		fmt.Sprintf(k.reassignmentJSONFile, batchID), "--throttle", strconv.FormatInt(int64(throttle), 10), "--execute"}
 }
 
-func (k *kafkaPartitionReassignment) verify(zookeeper string, batchID int) (string, []string) {
-	return "kafka-reassign-partitions", []string{"--zookeeper", zookeeper, "--reassignment-json-file", fmt.Sprintf(k.reassignmentJSONFile, batchID), "--verify"}
+func (k *kafkaPartitionReassignment) verify(zookeeper string, batchID int) (cmd string, args []string) {
+	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--reassignment-json-file",
+		fmt.Sprintf(k.reassignmentJSONFile, batchID), "--verify"}
 }
 
 func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
@@ -96,7 +101,8 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 	return nil
 }
 
-func (p *Partition) IncreaseReplication(topicsMetadata []*TopicMetadata, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
+func (p *Partition) IncreaseReplication(topicsMetadata []*TopicMetadata, replicationFactor, numOfBrokers,
+	batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
 	var batches [][]*TopicMetadata
 
 	for i := 0; i < len(topicsMetadata); i += batch {
@@ -199,6 +205,9 @@ func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchID int) error {
 
 func (p *Partition) reassignForBatch(batch []*TopicMetadata, batchID, replicationFactor, numOfBrokers, throttle int) error {
 	data, err := json.MarshalIndent(buildReassignmentJSON(batch, replicationFactor, numOfBrokers), "", "")
+	if err != nil {
+		return err
+	}
 	err = p.WriteFile(fmt.Sprintf(p.reassignmentJSONFile, batchID), string(data))
 	if err != nil {
 		return err
@@ -230,17 +239,17 @@ type reassignmentJSON struct {
 }
 
 func buildReassignmentJSON(batch []*TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJSON {
-	reassignmentJSON := reassignmentJSON{Version: 1, Partitions: []partitionDetail{}}
+	reassignmentData := reassignmentJSON{Version: 1, Partitions: []partitionDetail{}}
 	for _, topicMetadata := range batch {
 		partitions := topicMetadata.Partitions
 		leaderCounter := make(map[int32]int32)
 		for _, partitionMetadata := range partitions {
-			replicas := buildReplicaSet((*partitionMetadata).Leader, int32(replicationFactor), int32(numOfBrokers), leaderCounter)
-			partitionDetail := partitionDetail{Topic: topicMetadata.Name, Partition: (*partitionMetadata).ID, Replicas: replicas}
-			reassignmentJSON.Partitions = append(reassignmentJSON.Partitions, partitionDetail)
+			replicas := buildReplicaSet(partitionMetadata.Leader, int32(replicationFactor), int32(numOfBrokers), leaderCounter)
+			partitionData := partitionDetail{Topic: topicMetadata.Name, Partition: partitionMetadata.ID, Replicas: replicas}
+			reassignmentData.Partitions = append(reassignmentData.Partitions, partitionData)
 		}
 	}
-	return reassignmentJSON
+	return reassignmentData
 }
 
 func buildReplicaSet(leader, replicationFactor, numOfBrokers int32, leaderCounter map[int32]int32) []int32 {
@@ -258,7 +267,7 @@ func buildReplicaSet(leader, replicationFactor, numOfBrokers int32, leaderCounte
 		replicas = append(replicas, replica)
 		i++
 	}
-	leaderCounter[leader] = leaderCounter[leader] + 1
+	leaderCounter[leader]++
 	return replicas
 }
 

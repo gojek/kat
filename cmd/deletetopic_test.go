@@ -174,8 +174,13 @@ func TestDelete_WhenLastWriteIsPassed_DeletesBlackListedTopicsOnError(t *testing
 
 	d := deleteTopic{BaseCmd: BaseCmd{TopicCli: mockTopicCli}, topicBlacklist: "test-1|test-2", io: mockIo, lastWrite: 123}
 	mockTopicCli.On("ListLastWrittenTopics", d.lastWrite, d.dataDir).Return(topics, errors.New("test"))
+	fakeExit := func(int) {
+		panic("os.Exit called")
+	}
+	patch := monkey.Patch(os.Exit, fakeExit)
+	defer patch.Unpatch()
 
-	d.deleteTopic()
+	assert.PanicsWithValue(t, "os.Exit called", d.deleteTopic, "os.Exit was not called")
 	mockTopicCli.AssertNotCalled(t, "ListOnly", mock.Anything, mock.Anything)
 	mockTopicCli.AssertNotCalled(t, "Delete", mock.Anything)
 	mockIo.AssertNotCalled(t, "AskForConfirmation", mock.Anything)
