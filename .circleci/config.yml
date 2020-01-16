@@ -25,12 +25,12 @@ jobs:
         name: Check Quality
         command: |
           env GO111MODULE=on go mod verify
-          make clean check-quality golangci
+          env GO111MODULE=on make clean check-quality golangci
     - run:
         name: Build
         command: |
           env GO111MODULE=on go mod verify
-          make clean build
+          env GO111MODULE=on make clean build
 
 
   test:
@@ -58,7 +58,7 @@ jobs:
         name: Run tests
         command: |
           env GO111MODULE=on go mod verify
-          make test
+          env GO111MODULE=on make test
 
 
   release:
@@ -85,7 +85,7 @@ jobs:
       - run:
           name: Release go binary
           command: |
-            make
+            env GO111MODULE=on make
             curl -sL https://git.io/goreleaser | bash
 
 workflows:
