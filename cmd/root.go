@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/util"
+	"github.com/gojekfarm/kat/cmd/mirror"
 
+	"github.com/gojekfarm/kat/logger"
 	"github.com/spf13/cobra"
 )
-
-var Cobra *util.CobraUtil
 
 var cliCmd = &cobra.Command{
 	Use:     "kat",
@@ -21,7 +19,7 @@ var cliCmd = &cobra.Command{
 func init() {
 	cobra.OnInitialize()
 	cliCmd.AddCommand(topicCmd)
-	cliCmd.AddCommand(mirrorCmd)
+	cliCmd.AddCommand(mirror.MirrorCmd)
 }
 
 func Execute() {

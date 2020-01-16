@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/util"
 )
 
 type Topic struct {
@@ -82,7 +81,7 @@ func (t *Topic) ListOnly(regex string, include bool) ([]string, error) {
 	for key := range topicDetails {
 		topics = append(topics, key)
 	}
-	return util.Filter(topics, regex, include)
+	return ListUtil{topics}.Filter(regex, include)
 }
 
 func (t *Topic) Delete(topics []string) error {

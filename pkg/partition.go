@@ -11,21 +11,20 @@ import (
 	"time"
 
 	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/util"
 )
 
 type executor interface {
 	Execute(name string, args []string) (bytes.Buffer, error)
 }
 
-type io interface {
-	WriteFile(fileName, data string) error
+type file interface {
+	Write(fileName, data string) error
 }
 
 type Partition struct {
 	zookeeper string
 	executor
-	io
+	file
 	kafkaPartitionReassignment
 }
 
@@ -37,8 +36,8 @@ type PartitionCli interface {
 func NewPartition(zookeeper string) PartitionCli {
 	return &Partition{
 		zookeeper: zookeeper,
-		executor:  &util.Executor{},
-		io:        &util.IO{},
+		executor:  &Executor{},
+		file:      &File{},
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -140,7 +139,7 @@ func (p *Partition) createTopicsToMoveJSON(batch []string, batchID int) error {
 	if err != nil {
 		return err
 	}
-	err = p.WriteFile(fmt.Sprintf(p.topicsToMoveJSONFile, batchID), string(topicsData))
+	err = p.Write(fmt.Sprintf(p.topicsToMoveJSONFile, batchID), string(topicsData))
 
 	return err
 }
@@ -152,12 +151,12 @@ func (p *Partition) generateReassignmentAndRollbackJSON(brokerList string, batch
 	}
 
 	fullReassignmentOutput := strings.Split(reassignmentData.String(), "\n")
-	err = p.WriteFile(fmt.Sprintf(p.rollbackJSONFile, batchID), fullReassignmentOutput[1])
+	err = p.Write(fmt.Sprintf(p.rollbackJSONFile, batchID), fullReassignmentOutput[1])
 	if err != nil {
 		return err
 	}
 
-	err = p.WriteFile(fmt.Sprintf(p.reassignmentJSONFile, batchID), fullReassignmentOutput[4])
+	err = p.Write(fmt.Sprintf(p.reassignmentJSONFile, batchID), fullReassignmentOutput[4])
 
 	return err
 }
@@ -208,7 +207,7 @@ func (p *Partition) reassignForBatch(batch []*TopicMetadata, batchID, replicatio
 	if err != nil {
 		return err
 	}
-	err = p.WriteFile(fmt.Sprintf(p.reassignmentJSONFile, batchID), string(data))
+	err = p.Write(fmt.Sprintf(p.reassignmentJSONFile, batchID), string(data))
 	if err != nil {
 		return err
 	}
@@ -218,7 +217,7 @@ func (p *Partition) reassignForBatch(batch []*TopicMetadata, batchID, replicatio
 		return err
 	}
 	fullReassignmentOutput := strings.Split(reassignmentData.String(), "\n")
-	err = p.WriteFile(fmt.Sprintf(p.rollbackJSONFile, batchID), fullReassignmentOutput[2])
+	err = p.Write(fmt.Sprintf(p.rollbackJSONFile, batchID), fullReassignmentOutput[2])
 	if err != nil {
 		return err
 	}

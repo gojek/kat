@@ -12,37 +12,37 @@ import (
 
 func TestPartition_ReassignPartitions_CreateTopicsToMoveFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper:                  "zoo",
 		executor:                   executor,
-		io:                         io,
+		file:                       file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{},
 	}
 	topics := []string{"test-1", "test-2"}
 	expectedErr := errors.New("error")
-	io.On("WriteFile", mock.Anything, mock.Anything).Return(expectedErr)
+	file.On("Write", mock.Anything, mock.Anything).Return(expectedErr)
 
 	err := partition.ReassignPartitions(topics, "broker-list", 2, 10, 1, 100000)
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_ReassignPartitions_CreateTopicsSuccess_GenerateReassignmentFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper:                  "zoo",
 		executor:                   executor,
-		io:                         io,
+		file:                       file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{},
 	}
 	topics := []string{"test-1", "test-2"}
 	expectedTopicsToMove := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}, {"topic": "test-2"}}}
 	expectedErr := errors.New("error")
-	io.On("WriteFile", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+	file.On("Write", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
 		expectedJSON, _ := json.MarshalIndent(expectedTopicsToMove, "", "")
 		assert.Equal(t, string(expectedJSON), args[1])
 	}).Return(nil)
@@ -52,16 +52,16 @@ func TestPartition_ReassignPartitions_CreateTopicsSuccess_GenerateReassignmentFa
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_ReassignPartitions_GenerateReassignmentAndRollbackSuccess_ExecuteFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -73,7 +73,7 @@ func TestPartition_ReassignPartitions_GenerateReassignmentAndRollbackSuccess_Exe
 	expectedTopicsToMove := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}, {"topic": "test-2"}}}
 	expectedTopicsJSON, _ := json.MarshalIndent(expectedTopicsToMove, "", "")
 	expectedErr := errors.New("error")
-	io.On("WriteFile", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
+	file.On("Write", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" +
@@ -85,8 +85,8 @@ func TestPartition_ReassignPartitions_GenerateReassignmentAndRollbackSuccess_Exe
 
 	expectedRollbackJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[6,1,2],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[4,2,5],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
 	expectedReassignmentJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[3,5,6],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
-	io.On("WriteFile", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
-	io.On("WriteFile", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
 
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, expectedErr)
 
@@ -94,16 +94,16 @@ func TestPartition_ReassignPartitions_GenerateReassignmentAndRollbackSuccess_Exe
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_ReassignPartitions_ExecuteSuccess_PollFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -115,7 +115,7 @@ func TestPartition_ReassignPartitions_ExecuteSuccess_PollFailure(t *testing.T) {
 	expectedTopicsToMove := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}, {"topic": "test-2"}}}
 	expectedTopicsJSON, _ := json.MarshalIndent(expectedTopicsToMove, "", "")
 	expectedErr := errors.New("Partition Reassignment failed: Reassignment of partition test-1-0 failed")
-	io.On("WriteFile", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
+	file.On("Write", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" +
@@ -127,8 +127,8 @@ func TestPartition_ReassignPartitions_ExecuteSuccess_PollFailure(t *testing.T) {
 
 	expectedRollbackJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[6,1,2],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[4,2,5],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
 	expectedReassignmentJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[3,5,6],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
-	io.On("WriteFile", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
-	io.On("WriteFile", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
 
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, nil)
 
@@ -142,16 +142,16 @@ func TestPartition_ReassignPartitions_ExecuteSuccess_PollFailure(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_ReassignPartitions_Success(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -162,7 +162,7 @@ func TestPartition_ReassignPartitions_Success(t *testing.T) {
 
 	expectedTopicsToMove := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}, {"topic": "test-2"}}}
 	expectedTopicsJSON, _ := json.MarshalIndent(expectedTopicsToMove, "", "")
-	io.On("WriteFile", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
+	file.On("Write", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" +
@@ -174,8 +174,8 @@ func TestPartition_ReassignPartitions_Success(t *testing.T) {
 
 	expectedRollbackJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[6,1,2],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[4,2,5],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
 	expectedReassignmentJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[3,5,6],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
-	io.On("WriteFile", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
-	io.On("WriteFile", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
 
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, nil)
 
@@ -188,16 +188,16 @@ func TestPartition_ReassignPartitions_Success(t *testing.T) {
 	err := partition.ReassignPartitions(topics, "broker-list", 2, 1, 1, 100000)
 	assert.NoError(t, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_ReassignPartitions_PollUntilTimeoutIfNotYetSuccessful(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -209,7 +209,7 @@ func TestPartition_ReassignPartitions_PollUntilTimeoutIfNotYetSuccessful(t *test
 
 	expectedTopicsToMove := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}, {"topic": "test-2"}}}
 	expectedTopicsJSON, _ := json.MarshalIndent(expectedTopicsToMove, "", "")
-	io.On("WriteFile", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
+	file.On("Write", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" +
@@ -221,8 +221,8 @@ func TestPartition_ReassignPartitions_PollUntilTimeoutIfNotYetSuccessful(t *test
 
 	expectedRollbackJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[6,1,2],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[4,2,5],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
 	expectedReassignmentJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[3,5,6],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
-	io.On("WriteFile", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
-	io.On("WriteFile", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
 
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, nil)
 
@@ -236,16 +236,16 @@ func TestPartition_ReassignPartitions_PollUntilTimeoutIfNotYetSuccessful(t *test
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -256,11 +256,11 @@ func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
 
 	expectedTopicsToMove1 := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}}}
 	expectedTopicsJSON1, _ := json.MarshalIndent(expectedTopicsToMove1, "", "")
-	io.On("WriteFile", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON1)).Return(nil)
+	file.On("Write", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON1)).Return(nil)
 
 	expectedTopicsToMove2 := topicsToMove{Topics: []map[string]string{{"topic": "test-2"}}}
 	expectedTopicsJSON2, _ := json.MarshalIndent(expectedTopicsToMove2, "", "")
-	io.On("WriteFile", "/tmp/topics-to-move-1.json", string(expectedTopicsJSON2)).Return(nil)
+	file.On("Write", "/tmp/topics-to-move-1.json", string(expectedTopicsJSON2)).Return(nil)
 
 	expectedFullReassignmentBytes1 := bytes.Buffer{}
 	expectedFullReassignmentBytes1.WriteString("Current partition replica assignment\n" +
@@ -272,8 +272,8 @@ func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
 
 	expectedRollbackJSON1 := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[6,1,2],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
 	expectedReassignmentJSON1 := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
-	io.On("WriteFile", "/tmp/rollback-0.json", expectedRollbackJSON1).Return(nil)
-	io.On("WriteFile", "/tmp/reassignment-0.json", expectedReassignmentJSON1).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", expectedRollbackJSON1).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", expectedReassignmentJSON1).Return(nil)
 
 	expectedFullReassignmentBytes2 := bytes.Buffer{}
 	expectedFullReassignmentBytes2.WriteString("Current partition replica assignment\n" +
@@ -285,8 +285,8 @@ func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
 
 	expectedRollbackJSON2 := "{\"version\":1,\"partitions\":[{\"topic\":\"test-2\",\"partition\":0,\"replicas\":[4,2,5],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
 	expectedReassignmentJSON2 := "{\"version\":1,\"partitions\":[{\"topic\":\"test-2\",\"partition\":0,\"replicas\":[3,5,6],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
-	io.On("WriteFile", "/tmp/rollback-1.json", expectedRollbackJSON2).Return(nil)
-	io.On("WriteFile", "/tmp/reassignment-1.json", expectedReassignmentJSON2).Return(nil)
+	file.On("Write", "/tmp/rollback-1.json", expectedRollbackJSON2).Return(nil)
+	file.On("Write", "/tmp/reassignment-1.json", expectedReassignmentJSON2).Return(nil)
 
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, nil)
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-1.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, nil)
@@ -304,16 +304,16 @@ func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
 	err := partition.ReassignPartitions(topics, "broker-list", 1, 1, 1, 100000)
 	assert.NoError(t, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_IncreaseReplication_WriteReassignmentFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -335,22 +335,22 @@ func TestPartition_IncreaseReplication_WriteReassignmentFailure(t *testing.T) {
 			OfflineReplicas: nil,
 		}},
 	}}
-	io.On("WriteFile", "/tmp/reassignment-0.json", mock.Anything).Return(expectedErr)
+	file.On("Write", "/tmp/reassignment-0.json", mock.Anything).Return(expectedErr)
 
 	err := partition.IncreaseReplication(topicsMetadata, 1, 1, 1, 3, 1, 100000)
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_IncreaseReplication_WriteReassignmentSuccess_ExecuteFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -372,23 +372,23 @@ func TestPartition_IncreaseReplication_WriteReassignmentSuccess_ExecuteFailure(t
 			OfflineReplicas: nil,
 		}},
 	}}
-	io.On("WriteFile", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, expectedErr)
 
 	err := partition.IncreaseReplication(topicsMetadata, 1, 1, 1, 3, 1, 100000)
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_IncreaseReplication_ExecuteSuccess_RollbackJSONFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -410,8 +410,8 @@ func TestPartition_IncreaseReplication_ExecuteSuccess_RollbackJSONFailure(t *tes
 			OfflineReplicas: nil,
 		}},
 	}}
-	io.On("WriteFile", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
-	io.On("WriteFile", "/tmp/rollback-0.json", mock.Anything).Return(expectedErr)
+	file.On("Write", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", mock.Anything).Return(expectedErr)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" + "\n" +
@@ -422,16 +422,16 @@ func TestPartition_IncreaseReplication_ExecuteSuccess_RollbackJSONFailure(t *tes
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_IncreaseReplication_RollbackJSONSuccess_PollFailure(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -453,8 +453,8 @@ func TestPartition_IncreaseReplication_RollbackJSONSuccess_PollFailure(t *testin
 			OfflineReplicas: nil,
 		}},
 	}}
-	io.On("WriteFile", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
-	io.On("WriteFile", "/tmp/rollback-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", mock.Anything).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" + "\n" +
@@ -470,16 +470,16 @@ func TestPartition_IncreaseReplication_RollbackJSONSuccess_PollFailure(t *testin
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_IncreaseReplicationSuccess(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -499,8 +499,8 @@ func TestPartition_IncreaseReplicationSuccess(t *testing.T) {
 			OfflineReplicas: nil,
 		}},
 	}}
-	io.On("WriteFile", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
-	io.On("WriteFile", "/tmp/rollback-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", mock.Anything).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" + "\n" +
@@ -515,16 +515,16 @@ func TestPartition_IncreaseReplicationSuccess(t *testing.T) {
 	err := partition.IncreaseReplication(topicsMetadata, 1, 1, 1, 1, 1, 100000)
 	assert.NoError(t, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestPartition_IncreaseReplication__PollUntilTimeoutIfNotYetSuccessful(t *testing.T) {
 	executor := &MockExecutor{}
-	io := &MockIo{}
+	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
 		executor:  executor,
-		io:        io,
+		file:      file,
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -545,8 +545,8 @@ func TestPartition_IncreaseReplication__PollUntilTimeoutIfNotYetSuccessful(t *te
 			OfflineReplicas: nil,
 		}},
 	}}
-	io.On("WriteFile", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
-	io.On("WriteFile", "/tmp/rollback-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", mock.Anything).Return(nil)
+	file.On("Write", "/tmp/rollback-0.json", mock.Anything).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
 	expectedFullReassignmentBytes.WriteString("Current partition replica assignment\n" + "\n" +
@@ -562,7 +562,7 @@ func TestPartition_IncreaseReplication__PollUntilTimeoutIfNotYetSuccessful(t *te
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	executor.AssertExpectations(t)
-	io.AssertExpectations(t)
+	file.AssertExpectations(t)
 }
 
 func TestBuildReassignmentJSON(suite *testing.T) {
@@ -589,4 +589,13 @@ func TestBuildReassignmentJSON(suite *testing.T) {
 		assert.Equal(t, expectedJSONForReplicationFactor3, actualJSONForReplicationFactor3)
 		assert.Equal(t, expectedJSONForReplicationFactor4, actualJSONForReplicationFactor4)
 	})
+}
+
+type MockFile struct {
+	mock.Mock
+}
+
+func (m *MockFile) Write(fileName, data string) error {
+	arguments := m.Called(fileName, data)
+	return arguments.Error(0)
 }

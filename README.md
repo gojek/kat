@@ -41,17 +41,17 @@ kat <cmd> --help
 ### List Topics
 * List all the topics in a cluster
 ```
-kat topic list --broker-list <"broker1,broker2">
+kat topic list --broker-list <"broker1:9092,broker2:9092">
 ```
 
 * List all topics with a particular replication factor
 ```
-kat topic list --broker-list <"broker1,broker2"> --replication-factor <replication factor>
+kat topic list --broker-list <"broker1:9092,broker2:9092"> --replication-factor <replication factor>
 ```
 
 * List all topics with last write time before given time (unused/stale topics)
 ```
-kat topic list --broker-list <"broker1,broker2"> --last-write=<epoch time> --data-dir=<kafka logs directory>
+kat topic list --broker-list <"broker1:9092,broker2:9092"> --last-write=<epoch time> --data-dir=<kafka logs directory>
 ```
 
 Topic throughput metrics or last modified time is not available in topic metadata response from kafka. Hence, this tool has a custom implementation of ssh'ing into all the brokers and filtering through the kafka logs directory to find the topics that were not written after the given time. 
@@ -59,35 +59,35 @@ Topic throughput metrics or last modified time is not available in topic metadat
 ### Describe Topics
 * Describe metadata for topics
 ```
-kat topic describe --broker-list <"broker1,broker2"> --topics <"topic1,topic2">
+kat topic describe --broker-list <"broker1:9092,broker2:9092"> --topics <"topic1,topic2">
 ```
 
 ### Delete Topics
 
 * Delete the topics that match the given topic-whitelist regex
 ```
-kat topic delete --broker-list <"broker1,broker2"> --topic-whitelist=<*test*>
+kat topic delete --broker-list <"broker1:9092,broker2:9092"> --topic-whitelist=<*test*>
 ```
 
 * Delete the topics that do not match the given topic-blacklist regex
 ```
-kat topic delete --broker-list <"broker1,broker2"> --topic-blacklist=<*test*>
+kat topic delete --broker-list <"broker1:9092,broker2:9092"> --topic-blacklist=<*test*>
 ```
 
 * Delete the topics that are not modified since the last-write epoch time and match the topic-whitelist regex
 ```
-kat topic delete --broker-list <"broker1,broker2"> --last-write=<epoch time> --data-dir=<kafka logs directory>  --topic-whitelist=<*test*>
+kat topic delete --broker-list <"broker1:9092,broker2:9092"> --last-write=<epoch time> --data-dir=<kafka logs directory>  --topic-whitelist=<*test*>
 ```
 
 * Delete the topics that are not modified since the last-write epoch time and do not match the topic-blacklist regex
 ```
-kat topic delete --broker-list <"broker1,broker2"> --last-write=<epoch time> --data-dir=<kafka logs directory>  --topic-blacklist=<*test*>
+kat topic delete --broker-list <"broker1:9092,broker2:9092"> --last-write=<epoch time> --data-dir=<kafka logs directory>  --topic-blacklist=<*test*>
 ```
 
 ### Increase Replication Factor
 * Increase the replication factor of topics that match given regex
 ```
-kat topic increase-replication-factor --broker-list <"broker1,broker2"> --zookeeper <"zookeeper1,zookeeper2"> --topics <"topic1|topic2.*"> --replication-factor <r> --num-of-brokers <n> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>
+kat topic increase-replication-factor --broker-list <"broker1:9092,broker2:9092"> --zookeeper <"zookeeper1,zookeeper2"> --topics <"topic1|topic2.*"> --replication-factor <r> --num-of-brokers <n> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>
 ```
 
 [Details](#increase-replication-factor-and-partition-reassignment-details)
@@ -96,7 +96,7 @@ kat topic increase-replication-factor --broker-list <"broker1,broker2"> --zookee
 ### Reassign Partitions
 * Reassign partitions for topics that match given regex
 ```
-kat topic reassign-partitions --broker-list <"broker1,broker2"> --zookeeper <"zookeeper1,zookeeper2"> --topics <"topic1|topic2.*"> --broker-ids <i,j,k> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>
+kat topic reassign-partitions --broker-list <"broker1:9092,broker2:9092"> --zookeeper <"zookeeper1,zookeeper2"> --topics <"topic1|topic2.*"> --broker-ids <i,j,k> --batch <b> --timeout-per-batch <t> --poll-interval <p> --throttle <t>
 ```
 
 [Details](#increase-replication-factor-and-partition-reassignment-details)
@@ -104,39 +104,39 @@ kat topic reassign-partitions --broker-list <"broker1,broker2"> --zookeeper <"zo
 ### Show Topic Configs
 * Show config for topics
 ```
-kat topic config show --topics <"topic1,topic2"> --broker-list <"broker1,broker2">
+kat topic config show --topics <"topic1,topic2"> --broker-list <"broker1:9092,broker2:9092">
 ```
 
 ### Alter Topic Configs
 * Alter config for topics
 ```
-kat topic config alter --topics <"topic1,topic2"> --broker-list <"broker1,broker2"> --config <"retention.ms=500000000,segment.bytes=1000000000">
+kat topic config alter --topics <"topic1,topic2"> --broker-list <"broker1:9092,broker2:9092"> --config <"retention.ms=500000000,segment.bytes=1000000000">
 ```
 
 ### Mirror Topic Configs from Source to Destination Cluster
 * Mirror all configs for topics present in both source and destination cluster
 ```
-kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4">
+kat mirror --source-broker-ips=<"broker1:9092,broker2:9092"> --destination-broker-ips=<"broker3,broker4">
 ```
 
 * Mirror configs for topics present in both source and destination cluster, with some configs as exception
 ```
-kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes">
+kat mirror --source-broker-ips=<"broker1:9092,broker2:9092"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes">
 ```
 
 * Mirror configs for topics present in source cluster, but not in destination cluster
 ```
-kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics
+kat mirror --source-broker-ips=<"broker1:9092,broker2:9092"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics
 ```
 
 * Mirror configs for topics, with increase in partition count if there is a difference
 ```
-kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics --increase-partitions
+kat mirror --source-broker-ips=<"broker1:9092,broker2:9092"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics --increase-partitions
 ```
 
 * Preview changes that will be applied on the destination cluster after mirroring
 ```
-kat mirror --source-broker-ips=<"broker1,broker2"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics --increase-partitions --dry-run
+kat mirror --source-broker-ips=<"broker1:9092,broker2:9092"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics --increase-partitions --dry-run
 ```
 
 #### Increase Replication Factor and Partition Reassignment Details

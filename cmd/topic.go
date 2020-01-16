@@ -1,6 +1,11 @@
 package cmd
 
 import (
+	"github.com/gojekfarm/kat/cmd/admin"
+	"github.com/gojekfarm/kat/cmd/config"
+	"github.com/gojekfarm/kat/cmd/delete"
+	"github.com/gojekfarm/kat/cmd/describe"
+	"github.com/gojekfarm/kat/cmd/list"
 	"github.com/gojekfarm/kat/logger"
 	"github.com/gojekfarm/kat/pkg"
 	"github.com/spf13/cobra"
@@ -19,11 +24,11 @@ func init() {
 		logger.Fatal(err)
 	}
 
-	topicCmd.AddCommand(listTopicCmd)
-	topicCmd.AddCommand(deleteTopicCmd)
-	topicCmd.AddCommand(describeTopicCmd)
-	topicCmd.AddCommand(increaseReplicationFactorCmd)
-	topicCmd.AddCommand(reassignPartitionsCmd)
-	topicCmd.AddCommand(configCmd)
+	topicCmd.AddCommand(list.ListTopicCmd)
+	topicCmd.AddCommand(delete.DeleteTopicCmd)
+	topicCmd.AddCommand(describe.DescribeTopicCmd)
+	topicCmd.AddCommand(admin.IncreaseReplicationFactorCmd)
+	topicCmd.AddCommand(admin.ReassignPartitionsCmd)
+	topicCmd.AddCommand(config.ConfigCmd)
 
 }
