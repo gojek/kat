@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojek/kat/pkg/client"
 
 	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 )
 
 func init() {

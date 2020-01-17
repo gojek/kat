@@ -6,9 +6,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/pkg/client"
-	"github.com/gojekfarm/kat/pkg/io"
+	"github.com/gojek/kat/logger"
+	"github.com/gojek/kat/pkg/client"
+	"github.com/gojek/kat/pkg/io"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 	"github.com/spf13/cobra"
 )
 

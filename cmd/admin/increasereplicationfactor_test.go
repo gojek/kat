@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojek/kat/pkg/client"
 	"github.com/stretchr/testify/mock"
 
 	"bou.ke/monkey"

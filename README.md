@@ -1,5 +1,5 @@
 # KAT
-[![Build Status](https://circleci.com/gh/gojekfarm/kat.svg?branch=master)](https://circleci.com/gh/gojekfarm/kat)
+[![Build Status](https://circleci.com/gh/gojek/kat.svg?branch=master)](https://circleci.com/gh/gojek/kat)
 
 Kafka Admin Tool provides an interface to perform many admin operations on kafka in a straight-forward manner.
 
@@ -12,7 +12,7 @@ brew install kat
 
 ### Others
 ```
-go install github.com/gojekfarm/kat
+go install github.com/gojek/kat
 ```
 
 ### Local Dev/Testing
@@ -158,7 +158,7 @@ This tool has automation around all these steps:
 
 ## Future Scope
 - Add support for more admin operations
-- Beautify the response of list and show config commands
+- Beautify the response of list and show config commands. Add custom features to ui pkg
 - Fetch values from a kat config file instead of passing everything as cmd args
 
 ## Contributing
@@ -166,22 +166,7 @@ This tool has automation around all these steps:
 * Follow go [guidelines](https://golang.org/doc/effective_go.html) for development
 * Ensure `make` succeeds
 
-Thanks for all the [Contributors](https://github.com/gojekfarm/kat/graphs/contributors).
+Thanks for all the [Contributors](https://github.com/gojek/kat/graphs/contributors).
 
 ## License
-
-```
-Copyright 2019, GO-JEK Tech (http://gojek.tech)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+Licensed under the [Apache License](./LICENSE), Version 2.0

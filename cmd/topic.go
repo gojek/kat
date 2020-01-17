@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"github.com/gojekfarm/kat/cmd/admin"
-	"github.com/gojekfarm/kat/cmd/config"
-	"github.com/gojekfarm/kat/cmd/delete"
-	"github.com/gojekfarm/kat/cmd/describe"
-	"github.com/gojekfarm/kat/cmd/list"
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/cmd/admin"
+	"github.com/gojek/kat/cmd/config"
+	"github.com/gojek/kat/cmd/delete"
+	"github.com/gojek/kat/cmd/describe"
+	"github.com/gojek/kat/cmd/list"
+	"github.com/gojek/kat/logger"
 	"github.com/spf13/cobra"
 )
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/gojekfarm/kat/cmd"
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/cmd"
+	"github.com/gojek/kat/logger"
 )
 
 func main() {

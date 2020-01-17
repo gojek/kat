@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojek/kat/logger"
+	"github.com/gojek/kat/pkg/client"
 )
 
 type Topic struct {

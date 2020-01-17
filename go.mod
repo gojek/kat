@@ -1,4 +1,4 @@
-module github.com/gojekfarm/kat
+module github.com/gojek/kat
 
 go 1.12
 

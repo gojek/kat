@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gojekfarm/kat/pkg/io"
+	"github.com/gojek/kat/pkg/io"
 
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 )
 
 type shellCmd interface {

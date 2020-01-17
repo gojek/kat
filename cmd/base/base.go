@@ -3,10 +3,10 @@ package base
 import (
 	"strings"
 
-	"github.com/gojekfarm/kat/pkg/client"
-	"github.com/gojekfarm/kat/pkg/model"
+	"github.com/gojek/kat/pkg/client"
+	"github.com/gojek/kat/pkg/model"
 
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 	"github.com/kevinburke/ssh_config"
 	"github.com/mitchellh/go-homedir"
 )

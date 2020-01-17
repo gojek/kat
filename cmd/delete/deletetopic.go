@@ -3,14 +3,14 @@ package delete
 import (
 	"fmt"
 
-	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojek/kat/pkg/client"
 
-	"github.com/gojekfarm/kat/pkg/model"
+	"github.com/gojek/kat/pkg/model"
 
-	"github.com/gojekfarm/kat/cmd/base"
+	"github.com/gojek/kat/cmd/base"
 
-	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/ui"
+	"github.com/gojek/kat/logger"
+	"github.com/gojek/kat/ui"
 	"github.com/kevinburke/ssh_config"
 	"github.com/spf13/cobra"
 )

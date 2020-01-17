@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 )
 
 type Executor struct{}

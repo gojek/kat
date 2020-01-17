@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gojekfarm/kat/cmd/mirror"
+	"github.com/gojek/kat/cmd/mirror"
 
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojek/kat/pkg/client"
 
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"

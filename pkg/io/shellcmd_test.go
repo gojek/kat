@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 
 	"github.com/stretchr/testify/assert"
 )

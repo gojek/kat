@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gojekfarm/kat/pkg/client"
-	"github.com/gojekfarm/kat/pkg/io"
+	"github.com/gojek/kat/pkg/client"
+	"github.com/gojek/kat/pkg/io"
 
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 )
 
 type executor interface {

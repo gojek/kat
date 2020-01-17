@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/Shopify/sarama"
-	"github.com/gojekfarm/kat/logger"
+	"github.com/gojek/kat/logger"
 )
 
 type SaramaClient struct {
