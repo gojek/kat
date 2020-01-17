@@ -3,6 +3,8 @@ package logger
 import (
 	"os"
 
+	"github.com/sirupsen/logrus/hooks/test"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,6 +25,10 @@ func SetupLogger(configuredLevel string) {
 			DisableLevelTruncation: true,
 		},
 	}
+}
+
+func SetDummyLogger() {
+	logger, _ = test.NewNullLogger()
 }
 
 func Debug(args ...interface{}) {
@@ -47,18 +53,6 @@ func Fatal(args ...interface{}) {
 
 func Fatalf(format string, args ...interface{}) {
 	logger.Fatalf(format, args...)
-}
-
-func Print(args ...interface{}) {
-	logger.Print(args...)
-}
-
-func Printf(format string, args ...interface{}) {
-	logger.Printf(format, args...)
-}
-
-func Println(args ...interface{}) {
-	logger.Println(args...)
 }
 
 func Info(args ...interface{}) {

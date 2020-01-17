@@ -1,4 +1,4 @@
-package io
+package ui
 
 import "fmt"
 
@@ -48,7 +48,7 @@ func (m MirrorStatusRow) FieldValues() []string {
 }
 
 func (m MirrorStatusRow) Headers() []string {
-	return []string{"Topic", "Action", "Configs", "OldPartitionCount", "NewPartitionCount", "Status", "Reason"}
+	return []string{"topic", "Action", "Configs", "OldPartitionCount", "NewPartitionCount", "Status", "Reason"}
 }
 
 type action int

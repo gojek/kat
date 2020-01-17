@@ -3,6 +3,8 @@ package list
 import (
 	"fmt"
 
+	"github.com/gojekfarm/kat/pkg/client"
+
 	"github.com/gojekfarm/kat/cmd/base"
 
 	"github.com/gojekfarm/kat/logger"
@@ -11,7 +13,7 @@ import (
 )
 
 type listTopic struct {
-	base.Cmd
+	client.Lister
 	replicationFactor int
 	lastWrite         int64
 	dataDir           string
@@ -23,7 +25,7 @@ var ListTopicCmd = &cobra.Command{
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := base.NewCobraUtil(command)
 		lastWrite := int64(cobraUtil.GetIntArg("last-write"))
-		var baseCmd base.Cmd
+		var baseCmd *base.Cmd
 		if lastWrite == 0 {
 			baseCmd = base.Init(cobraUtil)
 		} else {
@@ -31,7 +33,7 @@ var ListTopicCmd = &cobra.Command{
 		}
 
 		l := listTopic{
-			Cmd:               baseCmd,
+			Lister:            baseCmd.GetTopic(),
 			replicationFactor: cobraUtil.GetIntArg("replication-factor"),
 			lastWrite:         lastWrite,
 			dataDir:           cobraUtil.GetStringArg("data-dir"),
@@ -55,7 +57,7 @@ func (l *listTopic) listTopic() {
 			logger.Fatal(err)
 		}
 	} else {
-		topicDetails, err := l.TopicCli.List()
+		topicDetails, err := l.List()
 		if err != nil {
 			logger.Fatalf("Error while fetching topic list - %v\n", err)
 		}
@@ -76,7 +78,7 @@ func (l *listTopic) listTopic() {
 }
 
 func (l *listTopic) listLastWrittenTopics() error {
-	topics, err := l.TopicCli.ListLastWrittenTopics(l.lastWrite, l.dataDir)
+	topics, err := l.ListLastWrittenTopics(l.lastWrite, l.dataDir)
 	if err != nil {
 		logger.Errorf("Error while fetching topic list - %v\n", err)
 		return err

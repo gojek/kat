@@ -7,11 +7,8 @@ import (
 	"github.com/gojekfarm/kat/cmd/describe"
 	"github.com/gojekfarm/kat/cmd/list"
 	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/pkg"
 	"github.com/spf13/cobra"
 )
-
-var TopicCli pkg.TopicCli
 
 var topicCmd = &cobra.Command{
 	Use:   "topic",

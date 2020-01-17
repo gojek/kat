@@ -1,12 +1,11 @@
-package io
+package ui
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
-
-	"github.com/gojekfarm/kat/logger"
 )
 
 type UserInput struct{}
@@ -15,7 +14,7 @@ func (u UserInput) AskForConfirmation(question string) bool {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		logger.Printf("%s [y/n]: ", question)
+		fmt.Printf("%s [y/n]: ", question)
 
 		response, err := reader.ReadString('\n')
 		if err != nil {

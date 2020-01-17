@@ -1,4 +1,4 @@
-package pkg
+package client
 
 type TopicDetail struct {
 	NumPartitions     int32

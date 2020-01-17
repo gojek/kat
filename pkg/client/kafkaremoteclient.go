@@ -1,12 +1,18 @@
-package pkg
+package client
 
 import (
 	"bytes"
 	"strconv"
 	"strings"
 
+	"github.com/gojekfarm/kat/pkg/io"
+
 	"github.com/gojekfarm/kat/logger"
 )
+
+type shellCmd interface {
+	Get() string
+}
 
 type sshCli interface {
 	DialAndExecute(address string, commands ...shellCmd) (*bytes.Buffer, error)
@@ -26,7 +32,8 @@ func (r *kafkaRemoteClient) ListTopics(request ListTopicsRequest) ([]string, err
 	topicMap := make(map[string]int)
 	for id := 1; id <= len(brokers); id++ {
 		logger.Infof("Sshing into broker - %v\n", brokers[id])
-		data, err := r.sshCli.DialAndExecute(strings.Split(brokers[id], ":")[0], NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir))
+		data, err := r.sshCli.DialAndExecute(strings.Split(brokers[id], ":")[0], io.NewCdCmd(request.DataDir),
+			io.NewFindTopicsCmd(request.LastWritten, request.DataDir))
 		if err != nil {
 			logger.Errorf("Error while executing command on broker - %v\n", err)
 			return nil, err
@@ -70,7 +77,7 @@ func (r *kafkaRemoteClient) getFullyStaleTopics(topicMap map[string]int) ([]stri
 	for topic := range topicMap {
 		detail, ok := topicDetails[topic]
 		if !ok {
-			logger.Debugf("Topic cannot be processed as it is not returned by the list api %v - %v\n", topic, err)
+			logger.Debugf("topic cannot be processed as it is not returned by the list api %v - %v\n", topic, err)
 			continue
 		}
 

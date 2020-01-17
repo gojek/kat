@@ -5,15 +5,17 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gojekfarm/kat/cmd/base"
+	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/stretchr/testify/mock"
 
 	"bou.ke/monkey"
-	"github.com/gojekfarm/kat/pkg"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIncreaseReplicationFactor_Success(t *testing.T) {
-	mockTopicCli := &pkg.MockTopicCli{}
+	mockLister := &client.MockLister{}
+	mockDescriber := &client.MockDescriber{}
+	mockPartitioner := &client.MockPartitioner{}
 	topics := []string{"topic1", "topic2"}
 	replicationFactor := 3
 	numBrokers := 4
@@ -21,18 +23,23 @@ func TestIncreaseReplicationFactor_Success(t *testing.T) {
 	timeoutPerBatch := 1
 	pollInterval := 1
 	throttle := 100
-	zookeeper := "zookeeper-host"
 	topicRegex := "topic1|topic2"
+	topicMetadata := []*client.TopicMetadata{{Name: "topic1"}, {Name: "topic2"}}
 
-	mockTopicCli.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
-	mockTopicCli.On("IncreaseReplicationFactor", topics, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle, zookeeper).Return(nil).Times(1)
-	i := increaseReplication{Cmd: base.Cmd{TopicCli: mockTopicCli}, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, zookeeper: zookeeper}
+	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
+	mockDescriber.On("Describe", topics).Return(topicMetadata, nil).Times(1)
+	mockPartitioner.On("IncreaseReplication", topicMetadata, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle).Return(nil).Times(1)
+	i := increaseReplication{Lister: mockLister, Describer: mockDescriber, Partitioner: mockPartitioner, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
 	i.increaseReplicationFactor()
-	mockTopicCli.AssertExpectations(t)
+	mockLister.AssertExpectations(t)
+	mockDescriber.AssertExpectations(t)
+	mockPartitioner.AssertExpectations(t)
 }
 
-func TestIncreaseReplicationFactor_GetFailure(t *testing.T) {
-	mockTopicCli := &pkg.MockTopicCli{}
+func TestIncreaseReplicationFactor_ListFailure(t *testing.T) {
+	mockLister := &client.MockLister{}
+	mockDescriber := &client.MockDescriber{}
+	mockPartitioner := &client.MockPartitioner{}
 	var topics []string
 	replicationFactor := 3
 	numBrokers := 4
@@ -40,24 +47,87 @@ func TestIncreaseReplicationFactor_GetFailure(t *testing.T) {
 	timeoutPerBatch := 1
 	pollInterval := 1
 	throttle := 100
-	zookeeper := "zookeeper-host"
 	topicRegex := "topic1|topic2"
 
-	mockTopicCli.On("ListOnly", topicRegex, true).Return(topics, errors.New("error")).Times(1)
+	mockLister.On("ListOnly", topicRegex, true).Return(topics, errors.New("error")).Times(1)
 	fakeExit := func(int) {
 		panic("os.Exit called")
 	}
 	patch := monkey.Patch(os.Exit, fakeExit)
 	defer patch.Unpatch()
-	i := increaseReplication{Cmd: base.Cmd{TopicCli: mockTopicCli}, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, zookeeper: zookeeper}
+	i := increaseReplication{Lister: mockLister, Describer: mockDescriber, Partitioner: mockPartitioner, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
 	assert.PanicsWithValue(t, "os.Exit called", i.increaseReplicationFactor, "os.Exit was not called")
 
-	mockTopicCli.AssertNotCalled(t, "IncreaseReplicationFactor", topics, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle, zookeeper)
-	mockTopicCli.AssertExpectations(t)
+	mockDescriber.AssertNotCalled(t, "Describe", mock.Anything)
+	mockPartitioner.AssertNotCalled(t, "IncreaseReplication", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mockLister.AssertExpectations(t)
+	mockDescriber.AssertExpectations(t)
+	mockPartitioner.AssertExpectations(t)
+}
+
+func TestIncreaseReplicationFactor_DescribeFailure(t *testing.T) {
+	mockLister := &client.MockLister{}
+	mockDescriber := &client.MockDescriber{}
+	mockPartitioner := &client.MockPartitioner{}
+	topics := []string{"topic1", "topic2"}
+	replicationFactor := 3
+	numBrokers := 4
+	batch := 1
+	timeoutPerBatch := 1
+	pollInterval := 1
+	throttle := 100
+	topicRegex := "topic1|topic2"
+
+	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
+	mockDescriber.On("Describe", topics).Return([]*client.TopicMetadata{}, errors.New("error")).Times(1)
+	fakeExit := func(int) {
+		panic("os.Exit called")
+	}
+	patch := monkey.Patch(os.Exit, fakeExit)
+	defer patch.Unpatch()
+	i := increaseReplication{Lister: mockLister, Describer: mockDescriber, Partitioner: mockPartitioner, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
+	assert.PanicsWithValue(t, "os.Exit called", i.increaseReplicationFactor, "os.Exit was not called")
+
+	mockPartitioner.AssertNotCalled(t, "IncreaseReplication", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mockLister.AssertExpectations(t)
+	mockDescriber.AssertExpectations(t)
+	mockPartitioner.AssertExpectations(t)
+}
+
+func TestIncreaseReplicationFactor_IncreaseReplicationFailure(t *testing.T) {
+	mockLister := &client.MockLister{}
+	mockDescriber := &client.MockDescriber{}
+	mockPartitioner := &client.MockPartitioner{}
+	topics := []string{"topic1", "topic2"}
+	replicationFactor := 3
+	numBrokers := 4
+	batch := 1
+	timeoutPerBatch := 1
+	pollInterval := 1
+	throttle := 100
+	topicRegex := "topic1|topic2"
+	topicMetadata := []*client.TopicMetadata{{Name: "topic1"}, {Name: "topic2"}}
+
+	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
+	mockDescriber.On("Describe", topics).Return(topicMetadata, nil).Times(1)
+	mockPartitioner.On("IncreaseReplication", topicMetadata, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle).Return(errors.New("error")).Times(1)
+	fakeExit := func(int) {
+		panic("os.Exit called")
+	}
+	patch := monkey.Patch(os.Exit, fakeExit)
+	defer patch.Unpatch()
+	i := increaseReplication{Lister: mockLister, Describer: mockDescriber, Partitioner: mockPartitioner, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
+	assert.PanicsWithValue(t, "os.Exit called", i.increaseReplicationFactor, "os.Exit was not called")
+
+	mockLister.AssertExpectations(t)
+	mockDescriber.AssertExpectations(t)
+	mockPartitioner.AssertExpectations(t)
 }
 
 func TestIncreaseReplicationFactor_NoMatch(t *testing.T) {
-	mockTopicCli := &pkg.MockTopicCli{}
+	mockLister := &client.MockLister{}
+	mockDescriber := &client.MockDescriber{}
+	mockPartitioner := &client.MockPartitioner{}
 	var topics []string
 	replicationFactor := 3
 	numBrokers := 4
@@ -65,12 +135,14 @@ func TestIncreaseReplicationFactor_NoMatch(t *testing.T) {
 	timeoutPerBatch := 1
 	pollInterval := 1
 	throttle := 100
-	zookeeper := "zookeeper-host"
 	topicRegex := "topic1|topic2"
 
-	mockTopicCli.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
-	i := increaseReplication{Cmd: base.Cmd{TopicCli: mockTopicCli}, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, zookeeper: zookeeper}
+	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
+	i := increaseReplication{Lister: mockLister, Describer: mockDescriber, Partitioner: mockPartitioner, replicationFactor: replicationFactor, topics: topicRegex, numOfBrokers: numBrokers, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
 	i.increaseReplicationFactor()
-	mockTopicCli.AssertNotCalled(t, "IncreaseReplicationFactor", topics, replicationFactor, numBrokers, batch, timeoutPerBatch, pollInterval, throttle, zookeeper)
-	mockTopicCli.AssertExpectations(t)
+	mockDescriber.AssertNotCalled(t, "Describe", mock.Anything)
+	mockPartitioner.AssertNotCalled(t, "IncreaseReplication", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mockLister.AssertExpectations(t)
+	mockDescriber.AssertExpectations(t)
+	mockPartitioner.AssertExpectations(t)
 }

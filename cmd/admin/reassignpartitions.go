@@ -3,14 +3,15 @@ package admin
 import (
 	"github.com/gojekfarm/kat/cmd/base"
 	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/pkg/client"
 	"github.com/spf13/cobra"
 )
 
 type reassignPartitions struct {
-	base.Cmd
+	client.Lister
+	client.Partitioner
 	topics             string
 	brokerIds          string
-	zookeeper          string
 	batch              int
 	timeoutPerBatchInS int
 	pollIntervalInS    int
@@ -22,9 +23,10 @@ var ReassignPartitionsCmd = &cobra.Command{
 	Short: "Reassigns the partitions for topics",
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := base.NewCobraUtil(command)
-		baseCmd := base.Init(cobraUtil)
-		r := reassignPartitions{Cmd: baseCmd, topics: cobraUtil.GetStringArg("topics"), brokerIds: cobraUtil.GetStringArg("broker-ids"),
-			zookeeper: cobraUtil.GetStringArg("zookeeper"), batch: cobraUtil.GetIntArg("batch"),
+		zookeeper := cobraUtil.GetStringArg("zookeeper")
+		baseCmd := base.Init(cobraUtil, base.WithPartition(zookeeper))
+		r := reassignPartitions{Lister: baseCmd.GetTopic(), Partitioner: baseCmd.GetPartition(), topics: cobraUtil.GetStringArg("topics"),
+			brokerIds: cobraUtil.GetStringArg("broker-ids"), batch: cobraUtil.GetIntArg("batch"),
 			timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"), pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"),
 			throttle: cobraUtil.GetIntArg("throttle")}
 		r.reassignPartitions()
@@ -52,7 +54,7 @@ func init() {
 }
 
 func (r *reassignPartitions) reassignPartitions() {
-	topics, err := r.TopicCli.ListOnly(r.topics, true)
+	topics, err := r.ListOnly(r.topics, true)
 	if err != nil {
 		logger.Fatalf("Error while filtering topics - %v\n", err)
 	}
@@ -62,7 +64,7 @@ func (r *reassignPartitions) reassignPartitions() {
 		return
 	}
 
-	err = r.TopicCli.ReassignPartitions(topics, r.batch, r.timeoutPerBatchInS, r.pollIntervalInS, r.throttle, r.brokerIds, r.zookeeper)
+	err = r.ReassignPartitions(topics, r.brokerIds, r.batch, r.timeoutPerBatchInS, r.pollIntervalInS, r.throttle)
 	if err != nil {
 		logger.Errorf("Error while reassigning partitions: %s", err)
 		return
