@@ -3,6 +3,8 @@ package config
 import (
 	"strings"
 
+	"github.com/gojekfarm/kat/pkg/client"
+
 	"github.com/gojekfarm/kat/cmd/base"
 
 	"github.com/gojekfarm/kat/logger"
@@ -10,7 +12,7 @@ import (
 )
 
 type alterConfig struct {
-	base.Cmd
+	client.Configurer
 	config string
 	topics []string
 }
@@ -20,8 +22,7 @@ var alterConfigCmd = &cobra.Command{
 	Short: "alter the config for the given topics",
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := base.NewCobraUtil(command)
-		baseCmd := base.Init(cobraUtil)
-		a := alterConfig{Cmd: baseCmd, config: cobraUtil.GetStringArg("config"), topics: cobraUtil.GetTopicNames()}
+		a := alterConfig{Configurer: base.Init(cobraUtil).GetTopic(), config: cobraUtil.GetStringArg("config"), topics: cobraUtil.GetTopicNames()}
 		a.alterConfig()
 	},
 }
@@ -35,7 +36,7 @@ func init() {
 
 func (a *alterConfig) alterConfig() {
 	configMap := configMap(a.config)
-	err := a.TopicCli.UpdateConfig(a.topics, configMap, false)
+	err := a.UpdateConfig(a.topics, configMap, false)
 	if err != nil {
 		logger.Fatalf("Error while altering config - %v\n", err)
 	}

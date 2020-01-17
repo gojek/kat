@@ -1,18 +1,40 @@
 package describe
 
 import (
+	"errors"
+	"os"
 	"testing"
 
-	"github.com/gojekfarm/kat/cmd/base"
+	"bou.ke/monkey"
+	"github.com/gojekfarm/kat/logger"
+	"github.com/stretchr/testify/assert"
 
-	"github.com/gojekfarm/kat/pkg"
+	"github.com/gojekfarm/kat/pkg/client"
 )
 
-func TestDescribe(t *testing.T) {
-	mockTopicCli := &pkg.MockTopicCli{}
+func init() {
+	logger.SetDummyLogger()
+}
+
+func TestDescribe_Success(t *testing.T) {
+	mockDescriber := &client.MockDescriber{}
 	topics := []string{"topic1"}
-	mockTopicCli.On("Describe", topics).Return([]*pkg.TopicMetadata{}, nil).Times(1)
-	d := describeTopic{Cmd: base.Cmd{TopicCli: mockTopicCli}, topics: topics}
+	mockDescriber.On("Describe", topics).Return([]*client.TopicMetadata{}, nil).Times(1)
+	d := describeTopic{Describer: mockDescriber, topics: topics}
 	d.describeTopic()
-	mockTopicCli.AssertExpectations(t)
+	mockDescriber.AssertExpectations(t)
+}
+
+func TestDescribe_Failure(t *testing.T) {
+	mockDescriber := &client.MockDescriber{}
+	topics := []string{"topic1"}
+	mockDescriber.On("Describe", topics).Return([]*client.TopicMetadata{}, errors.New("error")).Times(1)
+	fakeExit := func(int) {
+		panic("os.Exit called")
+	}
+	patch := monkey.Patch(os.Exit, fakeExit)
+	defer patch.Unpatch()
+	d := describeTopic{Describer: mockDescriber, topics: topics}
+	assert.PanicsWithValue(t, "os.Exit called", d.describeTopic, "os.Exit was not called")
+	mockDescriber.AssertExpectations(t)
 }

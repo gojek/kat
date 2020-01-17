@@ -3,15 +3,16 @@ package describe
 import (
 	"fmt"
 
+	"github.com/gojekfarm/kat/pkg/client"
+
 	"github.com/gojekfarm/kat/cmd/base"
 
 	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/pkg"
 	"github.com/spf13/cobra"
 )
 
 type describeTopic struct {
-	base.Cmd
+	client.Describer
 	topics []string
 }
 
@@ -20,8 +21,7 @@ var DescribeTopicCmd = &cobra.Command{
 	Short: "Describes the given topic",
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := base.NewCobraUtil(command)
-		baseCmd := base.Init(cobraUtil)
-		d := describeTopic{Cmd: baseCmd, topics: cobraUtil.GetTopicNames()}
+		d := describeTopic{Describer: base.Init(cobraUtil).GetTopic(), topics: cobraUtil.GetTopicNames()}
 		d.describeTopic()
 	},
 }
@@ -34,16 +34,16 @@ func init() {
 }
 
 func (d *describeTopic) describeTopic() {
-	metadata, err := d.TopicCli.Describe(d.topics)
+	metadata, err := d.Describe(d.topics)
 	if err != nil {
 		logger.Fatalf("Error while retrieving topic metadata - %v\n", err)
 	}
 	printConfigs(metadata)
 }
 
-func printConfigs(metadata []*pkg.TopicMetadata) {
+func printConfigs(metadata []*client.TopicMetadata) {
 	for _, topicMetadata := range metadata {
-		fmt.Printf("Topic Name: %v,\nIsInternal: %v,\nPartitions:\n", topicMetadata.Name, topicMetadata.IsInternal)
+		fmt.Printf("topic Name: %v,\nIsInternal: %v,\nPartitions:\n", topicMetadata.Name, topicMetadata.IsInternal)
 
 		partitions := topicMetadata.Partitions
 		for _, partitionMetadata := range partitions {

@@ -1,17 +1,19 @@
-package pkg
+package model
 
 import (
 	"errors"
 	"testing"
+
+	"github.com/gojekfarm/kat/pkg/client"
 
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTopic_ListSuccess(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
-	expectedTopicDetails := map[string]TopicDetail{
+	expectedTopicDetails := map[string]client.TopicDetail{
 		"topic1": {
 			NumPartitions:     1,
 			ReplicationFactor: 2,
@@ -28,11 +30,11 @@ func TestTopic_ListSuccess(t *testing.T) {
 }
 
 func TestTopic_ListFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
-	kafkaClient.On("ListTopicDetails").Return(map[string]TopicDetail{}, expectedErr)
+	kafkaClient.On("ListTopicDetails").Return(map[string]client.TopicDetail{}, expectedErr)
 
 	_, err = topicCli.List()
 	assert.Error(t, err)
@@ -41,9 +43,9 @@ func TestTopic_ListFailure(t *testing.T) {
 }
 
 func TestTopic_DescribeSuccess(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
-	expectedTopicMetadata := []*TopicMetadata{
+	expectedTopicMetadata := []*client.TopicMetadata{
 		{
 			Err:        sarama.ErrNoError,
 			Name:       "topic1",
@@ -61,12 +63,12 @@ func TestTopic_DescribeSuccess(t *testing.T) {
 }
 
 func TestTopic_DescribeFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
 	topics := []string{"topic1"}
-	kafkaClient.On("DescribeTopicMetadata", topics).Return([]*TopicMetadata{}, expectedErr)
+	kafkaClient.On("DescribeTopicMetadata", topics).Return([]*client.TopicMetadata{}, expectedErr)
 
 	_, err = topicCli.Describe(topics)
 	assert.Error(t, err)
@@ -75,7 +77,7 @@ func TestTopic_DescribeFailure(t *testing.T) {
 }
 
 func TestTopic_UpdateConfigSuccess(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
 
 	topics := []string{"topic1"}
@@ -90,7 +92,7 @@ func TestTopic_UpdateConfigSuccess(t *testing.T) {
 }
 
 func TestTopic_UpdateConfigFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
@@ -107,17 +109,17 @@ func TestTopic_UpdateConfigFailure(t *testing.T) {
 }
 
 func TestTopic_ShowConfigSuccess(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
 
 	topic := "topic1"
 	kafkaClient.On("GetTopicResourceType").Return(int(sarama.TopicResource))
-	configResource := ConfigResource{
+	configResource := client.ConfigResource{
 		Type:        kafkaClient.GetTopicResourceType(),
 		Name:        topic,
 		ConfigNames: nil,
 	}
-	expectedConfigEntries := []ConfigEntry{
+	expectedConfigEntries := []client.ConfigEntry{
 		{
 			Name:      "key1",
 			Value:     "val1",
@@ -138,19 +140,19 @@ func TestTopic_ShowConfigSuccess(t *testing.T) {
 }
 
 func TestTopic_ShowConfigFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
 	expectedErr := errors.New("error")
 
 	topic := "topic1"
 	kafkaClient.On("GetTopicResourceType").Return(int(sarama.TopicResource))
-	configResource := ConfigResource{
+	configResource := client.ConfigResource{
 		Type:        kafkaClient.GetTopicResourceType(),
 		Name:        topic,
 		ConfigNames: nil,
 	}
 
-	kafkaClient.On("GetConfig", configResource).Return([]ConfigEntry{}, expectedErr)
+	kafkaClient.On("GetConfig", configResource).Return([]client.ConfigEntry{}, expectedErr)
 
 	_, err = topicCli.GetConfig(topic)
 	assert.Error(t, err)
@@ -158,22 +160,8 @@ func TestTopic_ShowConfigFailure(t *testing.T) {
 	kafkaClient.AssertExpectations(t)
 }
 
-func TestTopic_IncreaseReplicationFactorDescribeFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
-	topicCli, err := NewTopic(kafkaClient)
-	expectedErr := errors.New("error")
-
-	topics := []string{"topic1"}
-	kafkaClient.On("DescribeTopicMetadata", topics).Return([]*TopicMetadata{}, expectedErr)
-
-	err = topicCli.IncreaseReplicationFactor(topics, 1, 1, 1, 1, 1, 10000, "zookeeper")
-	assert.Error(t, err)
-	assert.Equal(t, expectedErr, err)
-	kafkaClient.AssertExpectations(t)
-}
-
 func TestTopic_DeleteSuccess(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, _ := NewTopic(kafkaClient)
 	topics := []string{"topic-1", "topic-2"}
 	kafkaClient.On("DeleteTopic", topics).Return(nil)
@@ -185,7 +173,7 @@ func TestTopic_DeleteSuccess(t *testing.T) {
 }
 
 func TestTopic_DeleteFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, _ := NewTopic(kafkaClient)
 	topics := []string{"topic-1", "topic-2"}
 	kafkaClient.On("DeleteTopic", topics).Return(errors.New("error"))
@@ -197,10 +185,10 @@ func TestTopic_DeleteFailure(t *testing.T) {
 }
 
 func TestTopic_CreateSuccess(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, _ := NewTopic(kafkaClient)
 	topicName := "topic-1"
-	detail := TopicDetail{}
+	detail := client.TopicDetail{}
 	validateOnly := false
 	kafkaClient.On("CreateTopic", topicName, detail, validateOnly).Return(nil)
 
@@ -211,10 +199,10 @@ func TestTopic_CreateSuccess(t *testing.T) {
 }
 
 func TestTopic_CreateFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, _ := NewTopic(kafkaClient)
 	topicName := "topic-1"
-	detail := TopicDetail{}
+	detail := client.TopicDetail{}
 	validateOnly := false
 	kafkaClient.On("CreateTopic", topicName, detail, validateOnly).Return(errors.New("error"))
 
@@ -225,7 +213,7 @@ func TestTopic_CreateFailure(t *testing.T) {
 }
 
 func TestTopic_CreatePartitionsSuccess(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, _ := NewTopic(kafkaClient)
 	topicName := "topic-1"
 	count := int32(10)
@@ -240,7 +228,7 @@ func TestTopic_CreatePartitionsSuccess(t *testing.T) {
 }
 
 func TestTopic_CreatePartitionsFailure(t *testing.T) {
-	kafkaClient := &MockKafkaAPIClient{}
+	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, _ := NewTopic(kafkaClient)
 	topicName := "topic-1"
 	count := int32(10)

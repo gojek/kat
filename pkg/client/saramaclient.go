@@ -1,4 +1,4 @@
-package pkg
+package client
 
 import (
 	"github.com/Shopify/sarama"
@@ -52,7 +52,7 @@ func (s *SaramaClient) ListBrokers() map[int]string {
 func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
 	topics, err := s.admin.ListTopics()
 	if err != nil {
-		logger.Errorf("Err while retrieving Topic details: %detail\n", err)
+		logger.Errorf("Err while retrieving topic details: %detail\n", err)
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func (s *SaramaClient) DeleteTopic(topics []string) error {
 func (s *SaramaClient) DescribeTopicMetadata(topics []string) ([]*TopicMetadata, error) {
 	metadata, err := s.admin.DescribeTopics(topics)
 	if err != nil {
-		logger.Errorf("Err while retrieving Topic metadata: %v\n", err)
+		logger.Errorf("Err while retrieving topic metadata: %v\n", err)
 		return nil, err
 	}
 

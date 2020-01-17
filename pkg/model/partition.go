@@ -1,4 +1,4 @@
-package pkg
+package model
 
 import (
 	"bytes"
@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojekfarm/kat/pkg/io"
 
 	"github.com/gojekfarm/kat/logger"
 )
@@ -28,16 +31,11 @@ type Partition struct {
 	kafkaPartitionReassignment
 }
 
-type PartitionCli interface {
-	ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error
-	IncreaseReplication(topicsMetadata []*TopicMetadata, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error
-}
-
-func NewPartition(zookeeper string) PartitionCli {
+func NewPartition(zookeeper string) *Partition {
 	return &Partition{
 		zookeeper: zookeeper,
-		executor:  &Executor{},
-		file:      &File{},
+		executor:  &io.Executor{},
+		file:      &io.File{},
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
 			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile: "/tmp/reassignment-%d.json",
@@ -100,9 +98,9 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 	return nil
 }
 
-func (p *Partition) IncreaseReplication(topicsMetadata []*TopicMetadata, replicationFactor, numOfBrokers,
+func (p *Partition) IncreaseReplication(topicsMetadata []*client.TopicMetadata, replicationFactor, numOfBrokers,
 	batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
-	var batches [][]*TopicMetadata
+	var batches [][]*client.TopicMetadata
 
 	for i := 0; i < len(topicsMetadata); i += batch {
 		batches = append(batches, topicsMetadata[i:min(i+batch, len(topicsMetadata))])
@@ -174,7 +172,7 @@ func (p *Partition) verifyAssignmentCompletion(batchID int) error {
 			continue
 		}
 		if result != "" && !strings.Contains(result, "successfully") {
-			errorArray = append(errorArray, fmt.Sprintf("Partition Reassignment failed: %s", result))
+			errorArray = append(errorArray, fmt.Sprintf("Partitioner Reassignment failed: %s", result))
 		}
 	}
 	if len(errorArray) != 0 {
@@ -190,7 +188,7 @@ func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchID int) error {
 	var err error
 
 	for i := 0; i < int(num); i++ {
-		logger.Info("Verifying Partition Reassignment ...")
+		logger.Info("Verifying Partitioner Reassignment ...")
 		err = p.verifyAssignmentCompletion(batchID)
 		if err == nil {
 			break
@@ -202,7 +200,7 @@ func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchID int) error {
 	return err
 }
 
-func (p *Partition) reassignForBatch(batch []*TopicMetadata, batchID, replicationFactor, numOfBrokers, throttle int) error {
+func (p *Partition) reassignForBatch(batch []*client.TopicMetadata, batchID, replicationFactor, numOfBrokers, throttle int) error {
 	data, err := json.MarshalIndent(buildReassignmentJSON(batch, replicationFactor, numOfBrokers), "", "")
 	if err != nil {
 		return err
@@ -237,7 +235,7 @@ type reassignmentJSON struct {
 	Partitions []partitionDetail `json:"partitions"`
 }
 
-func buildReassignmentJSON(batch []*TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJSON {
+func buildReassignmentJSON(batch []*client.TopicMetadata, replicationFactor, numOfBrokers int) reassignmentJSON {
 	reassignmentData := reassignmentJSON{Version: 1, Partitions: []partitionDetail{}}
 	for _, topicMetadata := range batch {
 		partitions := topicMetadata.Partitions

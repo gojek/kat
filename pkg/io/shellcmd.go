@@ -1,13 +1,9 @@
-package pkg
+package io
 
 import (
 	"fmt"
 	"time"
 )
-
-type shellCmd interface {
-	Get() string
-}
 
 type CdCmd struct {
 	dir string

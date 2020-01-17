@@ -1,4 +1,4 @@
-package io
+package ui
 
 import (
 	"errors"
@@ -97,5 +97,5 @@ func TestMirrorStatus_Headers(t *testing.T) {
 
 	mirrorStatus := MirrorStatus(topic, config, oldNumOfPartitions, newNumOfPartitions, isCreate, isDryRun, nil)
 
-	assert.Equal(t, []string{"Topic", "Action", "Configs", "OldPartitionCount", "NewPartitionCount", "Status", "Reason"}, mirrorStatus.Headers())
+	assert.Equal(t, []string{"topic", "Action", "Configs", "OldPartitionCount", "NewPartitionCount", "Status", "Reason"}, mirrorStatus.Headers())
 }

@@ -1,10 +1,12 @@
-package pkg
+package client
 
 import (
 	"bytes"
 	"errors"
 	"sort"
 	"testing"
+
+	"github.com/gojekfarm/kat/pkg/io"
 
 	"github.com/gojekfarm/kat/logger"
 	"github.com/stretchr/testify/assert"
@@ -29,8 +31,8 @@ func TestKafkaRemoteClient_ListTopics_AllPartitionsStale(t *testing.T) {
 	broker1Response.WriteString("topic-1 1\ntopic-2 1")
 	broker2Response := bytes.Buffer{}
 	broker2Response.WriteString("topic-1 1\ntopic-2 1")
-	sshCli.On("DialAndExecute", "broker-1", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
-	sshCli.On("DialAndExecute", "broker-2", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
+	sshCli.On("DialAndExecute", "broker-1", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
+	sshCli.On("DialAndExecute", "broker-2", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
 	expectedTopicDetails := map[string]TopicDetail{
 		"topic-1": {
 			NumPartitions:     1,
@@ -66,8 +68,8 @@ func TestKafkaRemoteClient_ListTopics_SomePartitionsAreStale(t *testing.T) {
 	broker1Response.WriteString("topic-1 1\ntopic-2 1")
 	broker2Response := bytes.Buffer{}
 	broker2Response.WriteString("topic-1 1")
-	sshCli.On("DialAndExecute", "broker-1", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
-	sshCli.On("DialAndExecute", "broker-2", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
+	sshCli.On("DialAndExecute", "broker-1", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
+	sshCli.On("DialAndExecute", "broker-2", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
 	expectedTopicDetails := map[string]TopicDetail{
 		"topic-1": {
 			NumPartitions:     1,
@@ -102,8 +104,8 @@ func TestKafkaRemoteClient_ListTopics_ApiClientDoesNotReturnTopicDetail(t *testi
 	broker1Response.WriteString("topic-1 1\ntopic-2 1")
 	broker2Response := bytes.Buffer{}
 	broker2Response.WriteString("topic-1 1\ntopic-2 1")
-	sshCli.On("DialAndExecute", "broker-1", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
-	sshCli.On("DialAndExecute", "broker-2", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
+	sshCli.On("DialAndExecute", "broker-1", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
+	sshCli.On("DialAndExecute", "broker-2", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
 	expectedTopicDetails := map[string]TopicDetail{
 		"topic-1": {
 			NumPartitions:     1,
@@ -134,8 +136,8 @@ func TestKafkaRemoteClient_ListTopics_ApiClientReturnsError(t *testing.T) {
 	broker1Response.WriteString("topic-1 1\ntopic-2 1")
 	broker2Response := bytes.Buffer{}
 	broker2Response.WriteString("topic-1 1\ntopic-2 1")
-	sshCli.On("DialAndExecute", "broker-1", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
-	sshCli.On("DialAndExecute", "broker-2", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
+	sshCli.On("DialAndExecute", "broker-1", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
+	sshCli.On("DialAndExecute", "broker-2", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker2Response, nil)
 	apiClient.On("ListTopicDetails").Return(map[string]TopicDetail{}, errors.New("error"))
 
 	topics, err := remoteClient.ListTopics(request)
@@ -157,7 +159,7 @@ func TestKafkaRemoteClient_ListTopics_DialAndExecuteReturnsError(t *testing.T) {
 	brokers := map[int]string{1: "broker-1:80", 2: "broker-2:80"}
 	apiClient.On("ListBrokers").Return(brokers)
 	broker1Response := bytes.Buffer{}
-	sshCli.On("DialAndExecute", "broker-1", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, errors.New("error"))
+	sshCli.On("DialAndExecute", "broker-1", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, errors.New("error"))
 
 	topics, err := remoteClient.ListTopics(request)
 	assert.Error(t, err)
@@ -180,7 +182,7 @@ func TestKafkaRemoteClient_ListTopics_DataIsNotReturnedInExpectedFormat(t *testi
 	apiClient.On("ListBrokers").Return(brokers)
 	broker1Response := bytes.Buffer{}
 	broker1Response.WriteString("topic-1 1\ntopic-2 abc")
-	sshCli.On("DialAndExecute", "broker-1", []shellCmd{NewCdCmd(request.DataDir), NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
+	sshCli.On("DialAndExecute", "broker-1", []shellCmd{io.NewCdCmd(request.DataDir), io.NewFindTopicsCmd(request.LastWritten, request.DataDir)}).Return(&broker1Response, nil)
 
 	topics, err := remoteClient.ListTopics(request)
 	assert.Error(t, err)

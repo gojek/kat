@@ -3,8 +3,10 @@ package base
 import (
 	"strings"
 
+	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojekfarm/kat/pkg/model"
+
 	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/pkg"
 	"github.com/kevinburke/ssh_config"
 	"github.com/mitchellh/go-homedir"
 )
@@ -12,21 +14,22 @@ import (
 type Cmd struct {
 	cobraUtil  *CobraUtil
 	enableSSH  bool
-	addrConfig string
-	TopicCli   pkg.TopicCli
+	brokerAddr string
+	topic      *model.Topic
+	partition  *model.Partition
 }
 
 type Opts func(cmd *Cmd)
 
-func Init(cobraUtil *CobraUtil, opts ...Opts) Cmd {
-	baseCmd := &Cmd{cobraUtil: cobraUtil, enableSSH: false, addrConfig: "broker-list"}
+func Init(cobraUtil *CobraUtil, opts ...Opts) *Cmd {
+	baseCmd := &Cmd{cobraUtil: cobraUtil, enableSSH: false, brokerAddr: "broker-list"}
 
 	for _, opt := range opts {
 		opt(baseCmd)
 	}
 
-	baseCmd.setTopicCli()
-	return *baseCmd
+	baseCmd.setTopic()
+	return baseCmd
 }
 
 func WithSSH() Opts {
@@ -35,26 +38,40 @@ func WithSSH() Opts {
 	}
 }
 
-func WithAddr(addrConfig string) Opts {
+func WithPartition(zookeeper string) Opts {
 	return func(baseCmd *Cmd) {
-		baseCmd.addrConfig = addrConfig
+		baseCmd.partition = model.NewPartition(zookeeper)
 	}
 }
 
-func (b *Cmd) setTopicCli() {
-	addr := strings.Split(b.cobraUtil.GetStringArg(b.addrConfig), ",")
-	var opts []pkg.TopicOpts
+func WithAddr(brokerAddr string) Opts {
+	return func(baseCmd *Cmd) {
+		baseCmd.brokerAddr = brokerAddr
+	}
+}
+
+func (b *Cmd) setTopic() {
+	addr := strings.Split(b.cobraUtil.GetStringArg(b.brokerAddr), ",")
+	var opts []model.TopicOpts
 	if b.enableSSH {
 		keyFile, err := homedir.Expand(b.cobraUtil.GetStringArg("ssh-key-file-path"))
 		if err != nil {
 			logger.Fatalf("Error while resolving ssh data directory - %v\n", err)
 		}
-		opts = append(opts, pkg.WithSSHClient(ssh_config.Get("*", "User"), b.cobraUtil.GetStringArg("ssh-port"), keyFile))
+		opts = append(opts, model.WithSSHClient(ssh_config.Get("*", "User"), b.cobraUtil.GetStringArg("ssh-port"), keyFile))
 	}
-	topicCli, err := pkg.NewTopic(pkg.NewSaramaClient(addr), opts...)
+	topic, err := model.NewTopic(client.NewSaramaClient(addr), opts...)
 	if err != nil {
 		logger.Fatalf("Err on creating topic client - %v\n", err)
 	}
 
-	b.TopicCli = topicCli
+	b.topic = topic
+}
+
+func (b *Cmd) GetTopic() *model.Topic {
+	return b.topic
+}
+
+func (b *Cmd) GetPartition() *model.Partition {
+	return b.partition
 }

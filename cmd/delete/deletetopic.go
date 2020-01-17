@@ -3,17 +3,21 @@ package delete
 import (
 	"fmt"
 
+	"github.com/gojekfarm/kat/pkg/client"
+
+	"github.com/gojekfarm/kat/pkg/model"
+
 	"github.com/gojekfarm/kat/cmd/base"
 
-	"github.com/gojekfarm/kat/io"
 	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/pkg"
+	"github.com/gojekfarm/kat/ui"
 	"github.com/kevinburke/ssh_config"
 	"github.com/spf13/cobra"
 )
 
 type deleteTopic struct {
-	base.Cmd
+	client.Lister
+	client.Deleter
 	lastWrite      int64
 	dataDir        string
 	topicWhitelist string
@@ -33,21 +37,22 @@ var DeleteTopicCmd = &cobra.Command{
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := base.NewCobraUtil(command)
 		lastWrite := int64(cobraUtil.GetIntArg("last-write"))
-		var baseCmd base.Cmd
+		var baseCmd *base.Cmd
 		if lastWrite == 0 {
 			baseCmd = base.Init(cobraUtil)
 		} else {
 			baseCmd = base.Init(cobraUtil, base.WithSSH())
 		}
 		d := deleteTopic{
-			Cmd:            baseCmd,
+			Lister:         baseCmd.GetTopic(),
+			Deleter:        baseCmd.GetTopic(),
 			lastWrite:      lastWrite,
 			dataDir:        cobraUtil.GetStringArg("data-dir"),
 			topicWhitelist: cobraUtil.GetStringArg("topic-whitelist"),
 			topicBlacklist: cobraUtil.GetStringArg("topic-blacklist"),
 			sshPort:        cobraUtil.GetStringArg("ssh-port"),
 			sshKeyFilePath: cobraUtil.GetStringArg("ssh-key-file-path"),
-			userInput:      &io.UserInput{},
+			userInput:      &ui.UserInput{},
 		}
 		d.deleteTopic()
 	},
@@ -81,7 +86,7 @@ func (d *deleteTopic) deleteTopic() {
 	fmt.Println("------------------------------------------------------------")
 	confirmDelete := d.userInput.AskForConfirmation("Do you really want to delete the above topics?")
 	if confirmDelete {
-		err = d.TopicCli.Delete(topics)
+		err = d.Delete(topics)
 		if err != nil {
 			logger.Fatalf("Error while deleting topics - %v\n", err)
 		}
@@ -103,7 +108,7 @@ func (d *deleteTopic) filterCriteria() (regex string, include bool, err error) {
 }
 
 func (d *deleteTopic) getLastWrittenTopics() ([]string, error) {
-	topics, err := d.TopicCli.ListLastWrittenTopics(d.lastWrite, d.dataDir)
+	topics, err := d.ListLastWrittenTopics(d.lastWrite, d.dataDir)
 	if err != nil {
 		logger.Errorf("Error while fetching topic list - %v\n", err)
 		return nil, err
@@ -117,7 +122,7 @@ func (d *deleteTopic) getTopics(regex string, include bool) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		topics, err := pkg.ListUtil{List: lastWrittenTopics}.Filter(regex, include)
+		topics, err := model.ListUtil{List: lastWrittenTopics}.Filter(regex, include)
 		if err != nil {
 			logger.Errorf("Error while fetching topic list - %v\n", err)
 			return nil, err
@@ -125,7 +130,7 @@ func (d *deleteTopic) getTopics(regex string, include bool) ([]string, error) {
 		return topics, nil
 	}
 
-	topics, err := d.TopicCli.ListOnly(regex, include)
+	topics, err := d.ListOnly(regex, include)
 	if err != nil {
 		logger.Errorf("Error while fetching topic list - %v\n", err)
 		return nil, err

@@ -5,19 +5,28 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojekfarm/kat/pkg/model"
+
 	"github.com/gojekfarm/kat/cmd/base"
 
-	"github.com/gojekfarm/kat/io"
 	"github.com/gojekfarm/kat/logger"
-	"github.com/gojekfarm/kat/pkg"
+	"github.com/gojekfarm/kat/ui"
 	"github.com/r3labs/diff"
 	"github.com/spf13/cobra"
 )
 
+type createOrUpdate interface {
+	client.Creator
+	client.Lister
+	client.Describer
+	client.Configurer
+}
+
 type mirror struct {
-	sourceCli          pkg.TopicCli
-	destinationCli     pkg.TopicCli
-	createTopic        bool
+	sourceCli          createOrUpdate
+	destinationCli     createOrUpdate
+	createTopics       bool
 	increasePartitions bool
 	dryRun             bool
 	excludeConfigs     []string
@@ -29,11 +38,11 @@ var MirrorCmd = &cobra.Command{
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := base.NewCobraUtil(command)
 
-		sourceCli := base.Init(cobraUtil, base.WithAddr("source-broker-ips")).TopicCli
-		destinationCli := base.Init(cobraUtil, base.WithAddr("destination-broker-ips")).TopicCli
+		sourceCli := base.Init(cobraUtil, base.WithAddr("source-broker-ips")).GetTopic()
+		destinationCli := base.Init(cobraUtil, base.WithAddr("destination-broker-ips")).GetTopic()
 		m := mirror{sourceCli: sourceCli,
 			destinationCli:     destinationCli,
-			createTopic:        cobraUtil.GetBoolArg("create-topics"),
+			createTopics:       cobraUtil.GetBoolArg("create-topics"),
 			increasePartitions: cobraUtil.GetBoolArg("increase-partitions"),
 			dryRun:             cobraUtil.GetBoolArg("dry-run"),
 			excludeConfigs:     cobraUtil.GetStringSliceArg("exclude-configs"),
@@ -71,12 +80,16 @@ func (m *mirror) mirrorTopicConfigs() {
 		logger.Fatalf("Destination cluster - %v\n", err)
 	}
 
-	tw := &io.TableWriter{}
+	tw := &ui.TableWriter{}
 	for topic, detail := range sourceTopics {
 		var err error
 		if destinationTopics[topic].NumPartitions == 0 {
-			err = m.createTopicIfEnabled(topic, detail)
-			tw.AddRow(io.MirrorStatus(topic, jsonString(detail.Config), detail.NumPartitions, detail.NumPartitions, true, m.dryRun, err))
+			if !m.createTopics {
+				logger.Infof("topic - %v does not exist in destination cluster. Pass --create-topics flag\n", topic)
+				continue
+			}
+			err = m.createTopic(topic, detail)
+			tw.AddRow(ui.MirrorStatus(topic, jsonString(detail.Config), detail.NumPartitions, detail.NumPartitions, true, m.dryRun, err))
 		} else {
 			sourceNumOfPartitions := sourceTopics[topic].NumPartitions
 			destNumOfPartitions := destinationTopics[topic].NumPartitions
@@ -89,7 +102,7 @@ func (m *mirror) mirrorTopicConfigs() {
 				continue
 			} else {
 				changelogs, err := m.applyDiff(topic, sourceCM, destinationCM, sourceNumOfPartitions, destNumOfPartitions)
-				tw.AddRow(io.MirrorStatus(topic, fmt.Sprint(changelogs), destNumOfPartitions, sourceNumOfPartitions, false, m.dryRun, err))
+				tw.AddRow(ui.MirrorStatus(topic, fmt.Sprint(changelogs), destNumOfPartitions, sourceNumOfPartitions, false, m.dryRun, err))
 			}
 		}
 	}
@@ -108,11 +121,7 @@ func (m *mirror) applyDiff(topic string, sourceCM, destinationCM map[string]stri
 	return changelogs, err
 }
 
-func (m *mirror) createTopicIfEnabled(topic string, detail pkg.TopicDetail) error {
-	if !m.createTopic {
-		logger.Infof("Topic - %v does not exist in destination cluster. Pass --create-topics flag\n", topic)
-		return nil
-	}
+func (m *mirror) createTopic(topic string, detail client.TopicDetail) error {
 	if !m.dryRun {
 		err := m.destinationCli.Create(topic, detail, false)
 		if err != nil {
@@ -141,7 +150,7 @@ func (m *mirror) updateTopicInDestinationCluster(topic string, sourceNumOfPartit
 	return err
 }
 
-func getTopicDetailsAndConfigs(cli pkg.TopicCli) (topics map[string]pkg.TopicDetail, topicConfigs map[string][]pkg.ConfigEntry, err error) {
+func getTopicDetailsAndConfigs(cli createOrUpdate) (topics map[string]client.TopicDetail, topicConfigs map[string][]client.ConfigEntry, err error) {
 	topics, err = cli.List()
 	if err != nil {
 		return nil, nil, fmt.Errorf("err while fetching topics - %v", err)
@@ -151,7 +160,7 @@ func getTopicDetailsAndConfigs(cli pkg.TopicCli) (topics map[string]pkg.TopicDet
 		return nil, nil, nil
 	}
 
-	topicConfigs = make(map[string][]pkg.ConfigEntry)
+	topicConfigs = make(map[string][]client.ConfigEntry)
 	for topic := range topics {
 		entries, err := cli.GetConfig(topic)
 		if err != nil {
@@ -177,10 +186,10 @@ func (m *mirror) increasePartitionsIfEnabled(topic string, sourceNumOfPartitions
 	return nil
 }
 
-func getConfigMap(configList []pkg.ConfigEntry, excludeConfigs []string) map[string]string {
+func getConfigMap(configList []client.ConfigEntry, excludeConfigs []string) map[string]string {
 	configMap := make(map[string]string)
 	for _, config := range configList {
-		if (pkg.ListUtil{List: excludeConfigs}).Contains(config.Name) {
+		if (model.ListUtil{List: excludeConfigs}).Contains(config.Name) {
 			continue
 		}
 		configMap[config.Name] = config.Value

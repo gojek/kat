@@ -1,4 +1,4 @@
-package pkg
+package model
 
 import (
 	"bytes"
@@ -6,12 +6,20 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/gojekfarm/kat/logger"
+	"github.com/gojekfarm/kat/pkg/client"
+	"github.com/gojekfarm/kat/pkg/io"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
+func init() {
+	logger.SetupLogger("info")
+}
+
 func TestPartition_ReassignPartitions_CreateTopicsToMoveFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper:                  "zoo",
@@ -31,7 +39,7 @@ func TestPartition_ReassignPartitions_CreateTopicsToMoveFailure(t *testing.T) {
 }
 
 func TestPartition_ReassignPartitions_CreateTopicsSuccess_GenerateReassignmentFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper:                  "zoo",
@@ -56,7 +64,7 @@ func TestPartition_ReassignPartitions_CreateTopicsSuccess_GenerateReassignmentFa
 }
 
 func TestPartition_ReassignPartitions_GenerateReassignmentAndRollbackSuccess_ExecuteFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -98,7 +106,7 @@ func TestPartition_ReassignPartitions_GenerateReassignmentAndRollbackSuccess_Exe
 }
 
 func TestPartition_ReassignPartitions_ExecuteSuccess_PollFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -114,7 +122,7 @@ func TestPartition_ReassignPartitions_ExecuteSuccess_PollFailure(t *testing.T) {
 
 	expectedTopicsToMove := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}, {"topic": "test-2"}}}
 	expectedTopicsJSON, _ := json.MarshalIndent(expectedTopicsToMove, "", "")
-	expectedErr := errors.New("Partition Reassignment failed: Reassignment of partition test-1-0 failed")
+	expectedErr := errors.New("Partitioner Reassignment failed: Reassignment of partition test-1-0 failed")
 	file.On("Write", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON)).Return(nil)
 
 	expectedFullReassignmentBytes := bytes.Buffer{}
@@ -146,7 +154,7 @@ func TestPartition_ReassignPartitions_ExecuteSuccess_PollFailure(t *testing.T) {
 }
 
 func TestPartition_ReassignPartitions_Success(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -192,7 +200,7 @@ func TestPartition_ReassignPartitions_Success(t *testing.T) {
 }
 
 func TestPartition_ReassignPartitions_PollUntilTimeoutIfNotYetSuccessful(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -205,7 +213,7 @@ func TestPartition_ReassignPartitions_PollUntilTimeoutIfNotYetSuccessful(t *test
 		},
 	}
 	topics := []string{"test-1", "test-2"}
-	expectedErr := errors.New("Partition Reassignment failed: Reassignment of partition test-1-0 is inprogress")
+	expectedErr := errors.New("Partitioner Reassignment failed: Reassignment of partition test-1-0 is inprogress")
 
 	expectedTopicsToMove := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}, {"topic": "test-2"}}}
 	expectedTopicsJSON, _ := json.MarshalIndent(expectedTopicsToMove, "", "")
@@ -240,7 +248,7 @@ func TestPartition_ReassignPartitions_PollUntilTimeoutIfNotYetSuccessful(t *test
 }
 
 func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -308,7 +316,7 @@ func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
 }
 
 func TestPartition_IncreaseReplication_WriteReassignmentFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -322,11 +330,11 @@ func TestPartition_IncreaseReplication_WriteReassignmentFailure(t *testing.T) {
 	}
 	expectedErr := errors.New("error")
 
-	topicsMetadata := []*TopicMetadata{{
+	topicsMetadata := []*client.TopicMetadata{{
 		Err:        nil,
 		Name:       "test-1",
 		IsInternal: false,
-		Partitions: []*PartitionMetadata{{
+		Partitions: []*client.PartitionMetadata{{
 			Err:             nil,
 			ID:              1,
 			Leader:          1,
@@ -345,7 +353,7 @@ func TestPartition_IncreaseReplication_WriteReassignmentFailure(t *testing.T) {
 }
 
 func TestPartition_IncreaseReplication_WriteReassignmentSuccess_ExecuteFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -359,11 +367,11 @@ func TestPartition_IncreaseReplication_WriteReassignmentSuccess_ExecuteFailure(t
 	}
 	expectedErr := errors.New("error")
 
-	topicsMetadata := []*TopicMetadata{{
+	topicsMetadata := []*client.TopicMetadata{{
 		Err:        nil,
 		Name:       "test-1",
 		IsInternal: false,
-		Partitions: []*PartitionMetadata{{
+		Partitions: []*client.PartitionMetadata{{
 			Err:             nil,
 			ID:              1,
 			Leader:          1,
@@ -383,7 +391,7 @@ func TestPartition_IncreaseReplication_WriteReassignmentSuccess_ExecuteFailure(t
 }
 
 func TestPartition_IncreaseReplication_ExecuteSuccess_RollbackJSONFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -397,11 +405,11 @@ func TestPartition_IncreaseReplication_ExecuteSuccess_RollbackJSONFailure(t *tes
 	}
 	expectedErr := errors.New("error")
 
-	topicsMetadata := []*TopicMetadata{{
+	topicsMetadata := []*client.TopicMetadata{{
 		Err:        nil,
 		Name:       "test-1",
 		IsInternal: false,
-		Partitions: []*PartitionMetadata{{
+		Partitions: []*client.PartitionMetadata{{
 			Err:             nil,
 			ID:              1,
 			Leader:          1,
@@ -426,7 +434,7 @@ func TestPartition_IncreaseReplication_ExecuteSuccess_RollbackJSONFailure(t *tes
 }
 
 func TestPartition_IncreaseReplication_RollbackJSONSuccess_PollFailure(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -438,13 +446,13 @@ func TestPartition_IncreaseReplication_RollbackJSONSuccess_PollFailure(t *testin
 			rollbackJSONFile:     "/tmp/rollback-%d.json",
 		},
 	}
-	expectedErr := errors.New("Partition Reassignment failed: Reassignment of partition test-1-0 failed")
+	expectedErr := errors.New("Partitioner Reassignment failed: Reassignment of partition test-1-0 failed")
 
-	topicsMetadata := []*TopicMetadata{{
+	topicsMetadata := []*client.TopicMetadata{{
 		Err:        nil,
 		Name:       "test-1",
 		IsInternal: false,
-		Partitions: []*PartitionMetadata{{
+		Partitions: []*client.PartitionMetadata{{
 			Err:             nil,
 			ID:              1,
 			Leader:          1,
@@ -474,7 +482,7 @@ func TestPartition_IncreaseReplication_RollbackJSONSuccess_PollFailure(t *testin
 }
 
 func TestPartition_IncreaseReplicationSuccess(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -486,11 +494,11 @@ func TestPartition_IncreaseReplicationSuccess(t *testing.T) {
 			rollbackJSONFile:     "/tmp/rollback-%d.json",
 		},
 	}
-	topicsMetadata := []*TopicMetadata{{
+	topicsMetadata := []*client.TopicMetadata{{
 		Err:        nil,
 		Name:       "test-1",
 		IsInternal: false,
-		Partitions: []*PartitionMetadata{{
+		Partitions: []*client.PartitionMetadata{{
 			Err:             nil,
 			ID:              1,
 			Leader:          1,
@@ -519,7 +527,7 @@ func TestPartition_IncreaseReplicationSuccess(t *testing.T) {
 }
 
 func TestPartition_IncreaseReplication__PollUntilTimeoutIfNotYetSuccessful(t *testing.T) {
-	executor := &MockExecutor{}
+	executor := &io.MockExecutor{}
 	file := &MockFile{}
 	partition := &Partition{
 		zookeeper: "zoo",
@@ -531,12 +539,12 @@ func TestPartition_IncreaseReplication__PollUntilTimeoutIfNotYetSuccessful(t *te
 			rollbackJSONFile:     "/tmp/rollback-%d.json",
 		},
 	}
-	expectedErr := errors.New("Partition Reassignment failed: Reassignment of partition test-1-0 is inprogress")
-	topicsMetadata := []*TopicMetadata{{
+	expectedErr := errors.New("Partitioner Reassignment failed: Reassignment of partition test-1-0 is inprogress")
+	topicsMetadata := []*client.TopicMetadata{{
 		Err:        nil,
 		Name:       "test-1",
 		IsInternal: false,
-		Partitions: []*PartitionMetadata{{
+		Partitions: []*client.PartitionMetadata{{
 			Err:             nil,
 			ID:              1,
 			Leader:          1,
@@ -567,24 +575,24 @@ func TestPartition_IncreaseReplication__PollUntilTimeoutIfNotYetSuccessful(t *te
 
 func TestBuildReassignmentJSON(suite *testing.T) {
 	suite.Run("Build Reassignment JSON", func(t *testing.T) {
-		partitionMetadata1 := PartitionMetadata{ID: 8, Leader: 6, Replicas: []int32{6}}
-		partitionMetadata2 := PartitionMetadata{ID: 11, Leader: 3, Replicas: []int32{3}}
-		partitionMetadata3 := PartitionMetadata{ID: 2, Leader: 6, Replicas: []int32{6}}
-		partitionMetadata4 := PartitionMetadata{ID: 5, Leader: 3, Replicas: []int32{3}}
-		partitionMetadata5 := PartitionMetadata{ID: 4, Leader: 2, Replicas: []int32{2}}
-		partitionMetadata6 := PartitionMetadata{ID: 7, Leader: 5, Replicas: []int32{5}}
-		partitionMetadata7 := PartitionMetadata{ID: 10, Leader: 2, Replicas: []int32{2}}
-		partitionMetadata8 := PartitionMetadata{ID: 1, Leader: 5, Replicas: []int32{5}}
-		partitionMetadata9 := PartitionMetadata{ID: 9, Leader: 1, Replicas: []int32{1}}
-		partitionMetadata10 := PartitionMetadata{ID: 3, Leader: 1, Replicas: []int32{1}}
-		partitionMetadata11 := PartitionMetadata{ID: 6, Leader: 4, Replicas: []int32{4}}
-		partitionMetadata12 := PartitionMetadata{ID: 0, Leader: 4, Replicas: []int32{4}}
-		topicMetadata := TopicMetadata{Name: "topic", Partitions: []*PartitionMetadata{&partitionMetadata1, &partitionMetadata2, &partitionMetadata3, &partitionMetadata4, &partitionMetadata5, &partitionMetadata6, &partitionMetadata7, &partitionMetadata8, &partitionMetadata9, &partitionMetadata10, &partitionMetadata11, &partitionMetadata12}}
+		partitionMetadata1 := client.PartitionMetadata{ID: 8, Leader: 6, Replicas: []int32{6}}
+		partitionMetadata2 := client.PartitionMetadata{ID: 11, Leader: 3, Replicas: []int32{3}}
+		partitionMetadata3 := client.PartitionMetadata{ID: 2, Leader: 6, Replicas: []int32{6}}
+		partitionMetadata4 := client.PartitionMetadata{ID: 5, Leader: 3, Replicas: []int32{3}}
+		partitionMetadata5 := client.PartitionMetadata{ID: 4, Leader: 2, Replicas: []int32{2}}
+		partitionMetadata6 := client.PartitionMetadata{ID: 7, Leader: 5, Replicas: []int32{5}}
+		partitionMetadata7 := client.PartitionMetadata{ID: 10, Leader: 2, Replicas: []int32{2}}
+		partitionMetadata8 := client.PartitionMetadata{ID: 1, Leader: 5, Replicas: []int32{5}}
+		partitionMetadata9 := client.PartitionMetadata{ID: 9, Leader: 1, Replicas: []int32{1}}
+		partitionMetadata10 := client.PartitionMetadata{ID: 3, Leader: 1, Replicas: []int32{1}}
+		partitionMetadata11 := client.PartitionMetadata{ID: 6, Leader: 4, Replicas: []int32{4}}
+		partitionMetadata12 := client.PartitionMetadata{ID: 0, Leader: 4, Replicas: []int32{4}}
+		topicMetadata := client.TopicMetadata{Name: "topic", Partitions: []*client.PartitionMetadata{&partitionMetadata1, &partitionMetadata2, &partitionMetadata3, &partitionMetadata4, &partitionMetadata5, &partitionMetadata6, &partitionMetadata7, &partitionMetadata8, &partitionMetadata9, &partitionMetadata10, &partitionMetadata11, &partitionMetadata12}}
 		expectedJSONForReplicationFactor3 := reassignmentJSON{Version: 1, Partitions: []partitionDetail{{Topic: "topic", Partition: 8, Replicas: []int32{6, 1, 2}}, {Topic: "topic", Partition: 11, Replicas: []int32{3, 4, 5}}, {Topic: "topic", Partition: 2, Replicas: []int32{6, 3, 4}}, {Topic: "topic", Partition: 5, Replicas: []int32{3, 6, 1}}, {Topic: "topic", Partition: 4, Replicas: []int32{2, 3, 4}}, {Topic: "topic", Partition: 7, Replicas: []int32{5, 6, 1}}, {Topic: "topic", Partition: 10, Replicas: []int32{2, 5, 6}}, {Topic: "topic", Partition: 1, Replicas: []int32{5, 2, 3}}, {Topic: "topic", Partition: 9, Replicas: []int32{1, 2, 3}}, {Topic: "topic", Partition: 3, Replicas: []int32{1, 4, 5}}, {Topic: "topic", Partition: 6, Replicas: []int32{4, 5, 6}}, {Topic: "topic", Partition: 0, Replicas: []int32{4, 1, 2}}}}
 		expectedJSONForReplicationFactor4 := reassignmentJSON{Version: 1, Partitions: []partitionDetail{{Topic: "topic", Partition: 8, Replicas: []int32{6, 1, 2, 3}}, {Topic: "topic", Partition: 11, Replicas: []int32{3, 4, 5, 6}}, {Topic: "topic", Partition: 2, Replicas: []int32{6, 4, 5, 1}}, {Topic: "topic", Partition: 5, Replicas: []int32{3, 1, 2, 4}}, {Topic: "topic", Partition: 4, Replicas: []int32{2, 3, 4, 5}}, {Topic: "topic", Partition: 7, Replicas: []int32{5, 6, 1, 2}}, {Topic: "topic", Partition: 10, Replicas: []int32{2, 6, 1, 3}}, {Topic: "topic", Partition: 1, Replicas: []int32{5, 3, 4, 6}}, {Topic: "topic", Partition: 9, Replicas: []int32{1, 2, 3, 4}}, {Topic: "topic", Partition: 3, Replicas: []int32{1, 5, 6, 2}}, {Topic: "topic", Partition: 6, Replicas: []int32{4, 5, 6, 1}}, {Topic: "topic", Partition: 0, Replicas: []int32{4, 2, 3, 5}}}}
 
-		actualJSONForReplicationFactor3 := buildReassignmentJSON([]*TopicMetadata{&topicMetadata}, 3, 6)
-		actualJSONForReplicationFactor4 := buildReassignmentJSON([]*TopicMetadata{&topicMetadata}, 4, 6)
+		actualJSONForReplicationFactor3 := buildReassignmentJSON([]*client.TopicMetadata{&topicMetadata}, 3, 6)
+		actualJSONForReplicationFactor4 := buildReassignmentJSON([]*client.TopicMetadata{&topicMetadata}, 4, 6)
 
 		assert.Equal(t, expectedJSONForReplicationFactor3, actualJSONForReplicationFactor3)
 		assert.Equal(t, expectedJSONForReplicationFactor4, actualJSONForReplicationFactor4)
