@@ -7,6 +7,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSaramaClient_ListTopicDetailsSuccess(t *testing.T) {
@@ -268,4 +269,38 @@ func TestSaramaClient_CreatePartitionsFailure(t *testing.T) {
 
 	assert.Error(t, err)
 	admin.AssertExpectations(t)
+}
+
+type mockGroupDescription interface {
+	GetMemberAssignment() (*sarama.ConsumerGroupMemberAssignment, error)
+}
+
+type mockMemberAssignment struct{}
+
+func (m *mockMemberAssignment) GetMemberAssignment() (*sarama.ConsumerGroupMemberAssignment, error) {
+	return &sarama.ConsumerGroupMemberAssignment{
+		Version:  1,
+		Topics:   map[string][]int32{"t1": {0, 1, 2}},
+		UserData: []byte("ss"),
+	}, nil
+}
+
+type mockGroupDescriptionStruct struct {
+	GroupId string
+	Members map[string]mockMemberAssignment
+}
+
+func TestSaramaClient_GetConsumerGroupsForTopic(t *testing.T) {
+	admin := &MockClusterAdmin{}
+	client := SaramaClient{admin: admin}
+
+	admin.On("DescribeConsumerGroups", []string{"c1"}).Return([]*mockGroupDescriptionStruct{{
+		GroupId: "c1",
+		Members: map[string]mockMemberAssignment{"k1": {}},
+	}}, nil)
+
+	consumerGroupChannel, err := client.GetConsumerGroupsForTopic([]string{"c1"}, "t1")
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, len(consumerGroupChannel))
 }

@@ -1,6 +1,9 @@
 package client
 
 import (
+	"fmt"
+	"sync"
+
 	"github.com/Shopify/sarama"
 	"github.com/gojek/kat/logger"
 )
@@ -8,6 +11,10 @@ import (
 type SaramaClient struct {
 	admin  sarama.ClusterAdmin
 	client sarama.Client
+}
+
+type SaramaMember struct {
+	member sarama.GroupMemberDescription
 }
 
 func NewSaramaClient(addr []string) *SaramaClient {
@@ -47,6 +54,48 @@ func (s *SaramaClient) ListBrokers() map[int]string {
 		brokerMap[int(broker.ID())] = broker.Addr()
 	}
 	return brokerMap
+}
+
+func (s *SaramaClient) ListConsumerGroups() (map[string]string, error) {
+	return s.admin.ListConsumerGroups()
+}
+
+func (s *SaramaClient) GetConsumerGroupsForTopic(groups []string, topic string) (chan string, error) {
+	var wg sync.WaitGroup
+	consumerGroupsChannel := make(chan string, len(groups))
+
+	if len(topic) == 0 {
+		for i := 0; i < len(groups); i++ {
+			consumerGroupsChannel <- groups[i]
+		}
+		close(consumerGroupsChannel)
+
+		return consumerGroupsChannel, nil
+	}
+
+	for i := 0; i < len(groups); i++ {
+		wg.Add(1)
+		go func(i int, wg *sync.WaitGroup) {
+			defer wg.Done()
+			groupDescription, _ := s.admin.DescribeConsumerGroups([]string{groups[i]})
+			for _, memberDesc := range groupDescription[0].Members {
+				ma, _ := memberDesc.GetMemberAssignment()
+				for topicName, _ := range ma.Topics {
+					if topicName == topic {
+						consumerGroupsChannel <- groupDescription[0].GroupId
+						fmt.Println(groupDescription[0].GroupId)
+					}
+				}
+				break
+			}
+		}(i, &wg)
+	}
+
+	wg.Wait()
+
+	close(consumerGroupsChannel)
+
+	return consumerGroupsChannel, nil
 }
 
 func (s *SaramaClient) ListTopicDetails() (map[string]TopicDetail, error) {
