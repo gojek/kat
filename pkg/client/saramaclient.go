@@ -80,6 +80,17 @@ func (s *SaramaClient) GetConsumerGroupsForTopic(groups []string, topic string) 
 			groupDescription, _ := s.admin.DescribeConsumerGroups([]string{groups[i]})
 			for _, memberDesc := range groupDescription[0].Members {
 				ma, _ := memberDesc.GetMemberAssignment()
+				fmt.Println("----version----")
+				fmt.Println(ma.Version)
+				fmt.Println("----version----")
+
+				fmt.Println("----userdata----")
+				fmt.Println(ma.UserData)
+				fmt.Println("----userdata----")
+
+				fmt.Println("----topics----")
+				fmt.Println(ma.Topics)
+				fmt.Println("----topics----")
 				for topicName, _ := range ma.Topics {
 					if topicName == topic {
 						consumerGroupsChannel <- groupDescription[0].GroupId

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gojek/kat/cmd/list"
 	"github.com/gojek/kat/cmd/mirror"
 
 	"github.com/gojek/kat/logger"
@@ -21,7 +20,7 @@ func init() {
 	cobra.OnInitialize()
 	cliCmd.AddCommand(topicCmd)
 	cliCmd.AddCommand(mirror.MirrorCmd)
-	cliCmd.AddCommand(list.ListConsumerGroupsCmd)
+	cliCmd.AddCommand(consumerGroupCmd)
 }
 
 func Execute() {

@@ -1,10 +1,10 @@
 package list
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/gojek/kat/cmd/base"
-	"github.com/gojek/kat/logger"
 	"github.com/gojek/kat/pkg/client"
 	"github.com/spf13/cobra"
 )
@@ -28,19 +28,20 @@ var ListConsumerGroupsCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	ListConsumerGroupsCmd.PersistentFlags().StringP("broker-list", "b", "", "Comma separated list of broker ips")
-	ListConsumerGroupsCmd.PersistentFlags().StringP("topic", "t", "", "Specify topic")
-	if err := ListConsumerGroupsCmd.MarkPersistentFlagRequired("broker-list"); err != nil {
-		logger.Fatal(err)
-	}
-}
-
 func (c *consumerGroupAdmin) ListGroups(topic string) error {
 	consumerGroupsMap, err := c.saramaClient.ListConsumerGroups()
 	if err != nil {
 		return err
 	}
+
+	consumerGroupList := make([]string, len(consumerGroupsMap))
+	for group := range consumerGroupsMap {
+		consumerGroupList = append(consumerGroupList, group)
+	}
+
+	sort.Slice(consumerGroupList, func(i int, j int) bool {
+		return consumerGroupList[i] < consumerGroupList[j]
+	})
 
 	var consumerGroups []string
 

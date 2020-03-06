@@ -11,7 +11,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.5 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/olekukonko/tablewriter v0.0.1
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/r3labs/diff v0.0.0-20191018104334-e3ae93f4edbb
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.3
@@ -19,4 +19,5 @@ require (
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf
 	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271 // indirect
+	gotest.tools v2.2.0+incompatible
 )
