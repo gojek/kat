@@ -64,34 +64,17 @@ func (s *SaramaClient) GetConsumerGroupsForTopic(groups []string, topic string) 
 	var wg sync.WaitGroup
 	consumerGroupsChannel := make(chan string, len(groups))
 
-	if len(topic) == 0 {
-		for i := 0; i < len(groups); i++ {
-			consumerGroupsChannel <- groups[i]
-		}
-		close(consumerGroupsChannel)
-
-		return consumerGroupsChannel, nil
-	}
-
 	for i := 0; i < len(groups); i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup) {
 			defer wg.Done()
-			groupDescription, _ := s.admin.DescribeConsumerGroups([]string{groups[i]})
+			groupDescription, err := s.admin.DescribeConsumerGroups([]string{groups[i]})
+			if err != nil {
+				logger.Fatalf("Err on describing consumer group %s: %v\n", groups[i], err)
+			}
 			for _, memberDesc := range groupDescription[0].Members {
 				ma, _ := memberDesc.GetMemberAssignment()
-				fmt.Println("----version----")
-				fmt.Println(ma.Version)
-				fmt.Println("----version----")
-
-				fmt.Println("----userdata----")
-				fmt.Println(ma.UserData)
-				fmt.Println("----userdata----")
-
-				fmt.Println("----topics----")
-				fmt.Println(ma.Topics)
-				fmt.Println("----topics----")
-				for topicName, _ := range ma.Topics {
+				for topicName := range ma.Topics {
 					if topicName == topic {
 						consumerGroupsChannel <- groupDescription[0].GroupId
 						fmt.Println(groupDescription[0].GroupId)

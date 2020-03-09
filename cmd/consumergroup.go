@@ -13,8 +13,12 @@ var consumerGroupCmd = &cobra.Command{
 
 func init() {
 	consumerGroupCmd.PersistentFlags().StringP("broker-list", "b", "", "Comma separated list of broker ips")
-	consumerGroupCmd.PersistentFlags().StringP("topic", "t", "", "Specify topic")
 	if err := consumerGroupCmd.MarkPersistentFlagRequired("broker-list"); err != nil {
+		logger.Fatal(err)
+	}
+
+	consumerGroupCmd.PersistentFlags().StringP("topic", "t", "", "Specify topic")
+	if err := consumerGroupCmd.MarkPersistentFlagRequired("topic"); err != nil {
 		logger.Fatal(err)
 	}
 
