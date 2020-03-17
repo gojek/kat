@@ -19,5 +19,4 @@ require (
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf
 	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271 // indirect
-	gotest.tools v2.2.0+incompatible
 )

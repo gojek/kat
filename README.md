@@ -24,6 +24,7 @@ go install github.com/gojek/kat
 - [List Topics](#list-topics)
 - [Describe Topics](#describe-topics)
 - [Delete Topics](#delete-topics)
+- [List Consumer Groups for a topic](#list-consumer-groups-for-a-topic)
 - [Increase Replication Factor](#increase-replication-factor)
 - [Reassign Partitions](#reassign-partitions)
 - [Show Topic Configs](#show-topic-configs)
@@ -82,6 +83,12 @@ kat topic delete --broker-list <"broker1:9092,broker2:9092"> --last-write=<epoch
 * Delete the topics that are not modified since the last-write epoch time and do not match the topic-blacklist regex
 ```
 kat topic delete --broker-list <"broker1:9092,broker2:9092"> --last-write=<epoch time> --data-dir=<kafka logs directory>  --topic-blacklist=<*test*>
+```
+
+### List Consumer Groups for a Topic
+* Lists all the consumer groups that are subscribed to a given topic
+```
+kat consumergroup list -b <"broker1:9092,broker2:9092"> -t <topic-name>
 ```
 
 ### Increase Replication Factor
