@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gojek/kat/cmd/base"
+	"github.com/gojek/kat/logger"
 	"github.com/gojek/kat/pkg/client"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +25,10 @@ var ListConsumerGroupsCmd = &cobra.Command{
 		cgl := consumerGroupAdmin{
 			saramaClient: client.NewSaramaClient(addr),
 		}
-		cgl.ListGroups(cobraUtil.GetStringArg("topic"))
+		err := cgl.ListGroups(cobraUtil.GetStringArg("topic"))
+		if err != nil {
+			logger.Fatalf("Error while listing consumer groups for %v topic", err)
+		}
 	},
 }
 

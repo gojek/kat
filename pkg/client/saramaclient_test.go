@@ -296,8 +296,7 @@ func TestSaramaClient_GetConsumerGroupsForTopic(t *testing.T) {
 
 	admin.On("DescribeConsumerGroups", []string{"test-group-id"}).Return(groupDesciption, nil)
 
-	consumerGroupChannel, err := client.GetConsumerGroupsForTopic([]string{"test-group-id"}, "test-topic")
+	_, err := client.GetConsumerGroupsForTopic([]string{"test-group-id"}, "test-topic")
 
 	require.NoError(t, err)
-	assert.Equal(t, 1, len(consumerGroupChannel))
 }

@@ -13,8 +13,19 @@ type SaramaClient struct {
 	client sarama.Client
 }
 
-type SaramaMember struct {
-	member sarama.GroupMemberDescription
+type consumerGroups map[string]*sarama.GroupMemberDescription
+
+func (c *consumerGroups) HasSubscription(topic string) bool {
+	for _, memberDesc := range *c {
+		ma, _ := memberDesc.GetMemberAssignment()
+		for topicName := range ma.Topics {
+			if topicName == topic {
+				return true
+			}
+		}
+		break
+	}
+	return false
 }
 
 func NewSaramaClient(addr []string) *SaramaClient {
@@ -72,15 +83,12 @@ func (s *SaramaClient) GetConsumerGroupsForTopic(groups []string, topic string) 
 			if err != nil {
 				logger.Fatalf("Err on describing consumer group %s: %v\n", groups[i], err)
 			}
-			for _, memberDesc := range groupDescription[0].Members {
-				ma, _ := memberDesc.GetMemberAssignment()
-				for topicName := range ma.Topics {
-					if topicName == topic {
-						consumerGroupsChannel <- groupDescription[0].GroupId
-						fmt.Println(groupDescription[0].GroupId)
-					}
-				}
-				break
+
+			var c consumerGroups = groupDescription[0].Members
+
+			if c.HasSubscription(topic) {
+				consumerGroupsChannel <- groupDescription[0].GroupId
+				fmt.Println(groupDescription[0].GroupId)
 			}
 		}(i, &wg)
 	}
