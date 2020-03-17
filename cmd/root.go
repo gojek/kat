@@ -20,6 +20,7 @@ func init() {
 	cobra.OnInitialize()
 	cliCmd.AddCommand(topicCmd)
 	cliCmd.AddCommand(mirror.MirrorCmd)
+	cliCmd.AddCommand(consumerGroupCmd)
 }
 
 func Execute() {

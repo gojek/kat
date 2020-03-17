@@ -7,6 +7,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSaramaClient_ListTopicDetailsSuccess(t *testing.T) {
@@ -268,4 +269,34 @@ func TestSaramaClient_CreatePartitionsFailure(t *testing.T) {
 
 	assert.Error(t, err)
 	admin.AssertExpectations(t)
+}
+func TestSaramaClient_GetConsumerGroupsForTopic(t *testing.T) {
+	admin := &MockClusterAdmin{}
+	client := SaramaClient{admin: admin}
+
+	groupDesciption := []*sarama.GroupDescription{{
+		GroupId: "test-group-id",
+		Members: map[string]*sarama.GroupMemberDescription{
+			"instance-id-0": {
+				ClientId:         "instance-id-0",
+				MemberAssignment: []byte{0x04, 0x05, 0x06},
+			},
+
+			"instance-id-1": {
+				ClientId:         "instance-id-1",
+				MemberAssignment: []byte{0x04, 0x05, 0x06},
+			},
+
+			"instance-id-2": {
+				ClientId:         "instance-id-2",
+				MemberAssignment: []byte{0x04, 0x05, 0x06},
+			},
+		},
+	}}
+
+	admin.On("DescribeConsumerGroups", []string{"test-group-id"}).Return(groupDesciption, nil)
+
+	_, err := client.GetConsumerGroupsForTopic([]string{"test-group-id"}, "test-topic")
+
+	require.NoError(t, err)
 }
