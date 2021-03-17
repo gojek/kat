@@ -9,6 +9,7 @@ type Lister interface {
 	List() (map[string]TopicDetail, error)
 	ListLastWrittenTopics(int64, string) ([]string, error)
 	ListOnly(regex string, include bool) ([]string, error)
+	ListEmptyLastWrittenTopics(int64, string) ([]string, error)
 }
 
 type Describer interface {

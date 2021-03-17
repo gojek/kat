@@ -73,6 +73,11 @@ func (t *Topic) ListOnly(regex string, include bool) ([]string, error) {
 	return ListUtil{topics}.Filter(regex, include)
 }
 
+func (t *Topic) ListEmptyLastWrittenTopics(lastWrittenEpoc int64, dataDir string) ([]string, error) {
+	// todo
+	return nil, nil
+}
+
 func (t *Topic) Describe(topics []string) ([]*client.TopicMetadata, error) {
 	return t.apiClient.DescribeTopicMetadata(topics)
 }

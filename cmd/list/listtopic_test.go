@@ -77,3 +77,26 @@ func TestListLastWritten_Error(t *testing.T) {
 	assert.PanicsWithValue(t, "os.Exit called", l.listTopic, "os.Exit was not called")
 	mockLister.AssertExpectations(t)
 }
+
+func TestListEmpty_Success(t *testing.T) {
+	mockLister := &client.MockLister{}
+	lastWrite := int64(123123)
+	mockLister.On("ListEmptyLastWrittenTopics", lastWrite, "/tmp").Return([]string{}, nil).Times(1)
+	l := listTopic{Lister: mockLister, lastWrite: lastWrite, dataDir: "/tmp", isEmpty: true}
+	l.listTopic()
+	mockLister.AssertExpectations(t)
+}
+
+func TestListEmpty_Failure(t *testing.T) {
+	mockLister := &client.MockLister{}
+	lastWrite := int64(123123)
+	mockLister.On("ListEmptyLastWrittenTopics", lastWrite, "/tmp").Return([]string{}, errors.New("error")).Times(1)
+	fakeExit := func(int) {
+		panic("os.Exit called")
+	}
+	patch := monkey.Patch(os.Exit, fakeExit)
+	defer patch.Unpatch()
+	l := listTopic{Lister: mockLister, lastWrite: lastWrite, dataDir: "/tmp", isEmpty: true}
+	assert.PanicsWithValue(t, "os.Exit called", l.listTopic, "os.Exit was not called")
+	mockLister.AssertExpectations(t)
+}
