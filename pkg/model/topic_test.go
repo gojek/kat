@@ -8,7 +8,15 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func withMockSSHClient(m *client.MockSSHClient) TopicOpts {
+	return func(t *Topic) error {
+		t.sshClient = m
+		return nil
+	}
+}
 
 func TestTopic_ListSuccess(t *testing.T) {
 	kafkaClient := &client.MockKafkaAPIClient{}
@@ -239,5 +247,58 @@ func TestTopic_CreatePartitionsFailure(t *testing.T) {
 	err := topicCli.CreatePartitions(topicName, count, assignment, validateOnly)
 
 	assert.Error(t, err)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_ListEmptyLastWrittenSuccess(t *testing.T) {
+	kafkaClient := &client.MockKafkaAPIClient{}
+	sshClient := &client.MockSSHClient{}
+	topicCli, _ := NewTopic(kafkaClient, withMockSSHClient(sshClient))
+	lastWrittenEpoch := int64(123123)
+	dataDir := "/tmp"
+	emptyTopicList := []string{"Etopic1", "Etopic2"}
+	lastWrittenTopics := []string{"Lwtopic1", "Etopic2", "LwTopic2"}
+	kafkaClient.On("GetEmptyTopics").Return(emptyTopicList, nil).Once()
+	sshClient.On("ListTopics", client.ListTopicsRequest{LastWritten: lastWrittenEpoch, DataDir: dataDir}).Return(lastWrittenTopics, nil).Once()
+
+	responseTopics, err := topicCli.ListEmptyLastWrittenTopics(lastWrittenEpoch, dataDir)
+
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"Etopic2"}, responseTopics)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_ListEmptyLastWrittenGetEmptyFailure(t *testing.T) {
+	kafkaClient := &client.MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	lastWrittenEpoch := int64(123123)
+	dataDir := "/tmp"
+	emptyError := errors.New("error while fetching empty topics")
+	kafkaClient.On("GetEmptyTopics").Return(nil, emptyError).Once()
+
+	responseTopics, err := topicCli.ListEmptyLastWrittenTopics(lastWrittenEpoch, dataDir)
+
+	require.Error(t, err)
+	assert.EqualError(t, err, emptyError.Error())
+	assert.Nil(t, responseTopics)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_ListEmptyLastWrittenListLastWrittenFailure(t *testing.T) {
+	kafkaClient := &client.MockKafkaAPIClient{}
+	sshClient := &client.MockSSHClient{}
+	topicCli, _ := NewTopic(kafkaClient, withMockSSHClient(sshClient))
+	lastWrittenEpoch := int64(123123)
+	dataDir := "/tmp"
+	emptyTopicList := []string{"Etopic1", "Etopic2"}
+	lastWrittenError := errors.New("error while fetching last written topics")
+	kafkaClient.On("GetEmptyTopics").Return(emptyTopicList, nil).Once()
+	sshClient.On("ListTopics", client.ListTopicsRequest{LastWritten: lastWrittenEpoch, DataDir: dataDir}).Return(nil, lastWrittenError).Once()
+
+	responseTopics, err := topicCli.ListEmptyLastWrittenTopics(lastWrittenEpoch, dataDir)
+
+	require.Error(t, err)
+	assert.EqualError(t, err, lastWrittenError.Error())
+	assert.Nil(t, responseTopics)
 	kafkaClient.AssertExpectations(t)
 }

@@ -60,6 +60,7 @@ type KafkaAPIClient interface {
 	UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error
 	GetTopicResourceType() int
 	GetConfig(resource ConfigResource) ([]ConfigEntry, error)
+	GetEmptyTopics() ([]string, error)
 }
 
 type KafkaSSHClient interface {

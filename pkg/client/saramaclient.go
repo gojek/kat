@@ -210,3 +210,8 @@ func (s *SaramaClient) GetConfig(resource ConfigResource) ([]ConfigEntry, error)
 
 	return configEntries, nil
 }
+
+func (s *SaramaClient) GetEmptyTopics() ([]string, error) {
+	// todo
+	return nil, nil
+}

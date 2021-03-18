@@ -73,9 +73,23 @@ func (t *Topic) ListOnly(regex string, include bool) ([]string, error) {
 	return ListUtil{topics}.Filter(regex, include)
 }
 
-func (t *Topic) ListEmptyLastWrittenTopics(lastWrittenEpoc int64, dataDir string) ([]string, error) {
-	// todo
-	return nil, nil
+func (t *Topic) ListEmptyLastWrittenTopics(lastWrittenEpoch int64, dataDir string) ([]string, error) {
+	emptyTopics, err := t.apiClient.GetEmptyTopics()
+	if err != nil {
+		return nil, err
+	}
+	topics, err := t.ListLastWrittenTopics(lastWrittenEpoch, dataDir)
+	if err != nil {
+		return nil, err
+	}
+	topicsUtil := ListUtil{List: topics}
+	filteredList := make([]string, 0)
+	for _, emptyTopic := range emptyTopics {
+		if topicsUtil.Contains(emptyTopic) {
+			filteredList = append(filteredList, emptyTopic)
+		}
+	}
+	return filteredList, nil
 }
 
 func (t *Topic) Describe(topics []string) ([]*client.TopicMetadata, error) {
