@@ -300,3 +300,200 @@ func TestSaramaClient_GetConsumerGroupsForTopic(t *testing.T) {
 
 	require.NoError(t, err)
 }
+
+func TestSaramaClient_GetEmptyTopicsSuccess(t *testing.T) {
+	admin := &MockClusterAdmin{}
+	mockClient := &MockSaramaClient{}
+	client := SaramaClient{admin: admin, client: mockClient}
+	brokerIDs := []int32{-1}
+	brokerMetaData := getLogDirsValue(sarama.ErrNoError)
+	brokers := []*sarama.Broker{sarama.NewBroker("broker-1:1234")}
+	mockClient.On("Brokers").Return(brokers).Once()
+	admin.On("DescribeLogDirs", brokerIDs).Return(brokerMetaData, nil).Once() //brokerid and response have different ids to check proper implementation
+
+	topics, err := client.GetEmptyTopics()
+
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"topic-1"}, topics)
+	admin.AssertExpectations(t)
+}
+
+func TestSaramaClient_GetEmptyTopicsFailure(t *testing.T) {
+	admin := &MockClusterAdmin{}
+	mockClient := &MockSaramaClient{}
+	client := SaramaClient{admin: admin, client: mockClient}
+	brokerIDs := []int32{-1}
+	brokerMetaData := getLogDirsValue(sarama.ErrLeaderNotAvailable)
+	brokers := []*sarama.Broker{sarama.NewBroker("broker-1:1234")}
+	mockClient.On("Brokers").Return(brokers).Once()
+	admin.On("DescribeLogDirs", brokerIDs).Return(brokerMetaData, nil).Once() //brokerid and response have different ids to check proper implementation
+
+	topics, err := client.GetEmptyTopics()
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, sarama.ErrLeaderNotAvailable))
+	assert.Nil(t, topics)
+	admin.AssertExpectations(t)
+}
+
+func getLogDirsValue(errorCode sarama.KError) map[int32][]sarama.DescribeLogDirsResponseDirMetadata {
+	brokerMetaData := make(map[int32][]sarama.DescribeLogDirsResponseDirMetadata)
+	brokerMetaData[-1] = []sarama.DescribeLogDirsResponseDirMetadata{
+		{
+			ErrorCode: errorCode,
+			Topics: []sarama.DescribeLogDirsResponseTopic{
+				{
+					Topic: "topic-1",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 0,
+							Size:        0,
+						},
+						{
+							PartitionID: 1,
+							Size:        0,
+						},
+						{
+							PartitionID: 2,
+							Size:        0,
+						},
+					},
+				},
+				{
+					Topic: "topic-2",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 0,
+							Size:        0,
+						},
+						{
+							PartitionID: 1,
+							Size:        0,
+						},
+						{
+							PartitionID: 2,
+							Size:        0,
+						},
+					},
+				},
+			},
+		},
+		{
+			Topics: []sarama.DescribeLogDirsResponseTopic{
+				{
+					Topic: "topic-1",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 0,
+							Size:        0,
+						},
+						{
+							PartitionID: 1,
+							Size:        0,
+						},
+						{
+							PartitionID: 2,
+							Size:        0,
+						},
+					},
+				},
+				{
+					Topic: "topic-2",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 0,
+							Size:        0,
+						},
+						{
+							PartitionID: 1,
+							Size:        0,
+						},
+						{
+							PartitionID: 2,
+							Size:        0,
+						},
+					},
+				},
+			},
+		},
+	}
+	brokerMetaData[2] = []sarama.DescribeLogDirsResponseDirMetadata{
+		{
+			Topics: []sarama.DescribeLogDirsResponseTopic{
+				{
+					Topic: "topic-1",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 3,
+							Size:        0,
+						},
+						{
+							PartitionID: 4,
+							Size:        0,
+						},
+						{
+							PartitionID: 5,
+							Size:        0,
+						},
+					},
+				},
+				{
+					Topic: "topic-2",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 4,
+							Size:        0,
+						},
+						{
+							PartitionID: 5,
+							Size:        0,
+						},
+						{
+							PartitionID: 6,
+							Size:        1,
+						},
+					},
+				},
+			},
+		},
+		{
+			Topics: []sarama.DescribeLogDirsResponseTopic{
+				{
+					Topic: "topic-1",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 0,
+							Size:        0,
+						},
+						{
+							PartitionID: 1,
+							Size:        0,
+						},
+						{
+							PartitionID: 2,
+							Size:        0,
+						},
+					},
+				},
+				{
+					Topic: "topic-2",
+					Partitions: []sarama.DescribeLogDirsResponsePartition{
+						{
+							PartitionID: 0,
+							Size:        0,
+						},
+						{
+							PartitionID: 1,
+							Size:        0,
+						},
+						{
+							PartitionID: 2,
+							Size:        0,
+						},
+					},
+				},
+			},
+		},
+	}
+	return brokerMetaData
+}

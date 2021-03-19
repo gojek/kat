@@ -212,6 +212,58 @@ func (s *SaramaClient) GetConfig(resource ConfigResource) ([]ConfigEntry, error)
 }
 
 func (s *SaramaClient) GetEmptyTopics() ([]string, error) {
-	// todo
-	return nil, nil
+	brokerMap := s.ListBrokers()
+	brokerIds := make([]int32, 0)
+	for id := range brokerMap {
+		brokerIds = append(brokerIds, int32(id))
+	}
+	metaData, err := s.admin.DescribeLogDirs(brokerIds)
+	if err != nil {
+		return nil, err
+	}
+	topicWiseMap, err := getTopicWiseMetaDataMap(metaData, brokerMap)
+	if err != nil {
+		return nil, err
+	}
+	emptyTopics := getZeroSizeTopics(topicWiseMap)
+	return emptyTopics, nil
+}
+
+func getZeroSizeTopics(topicWiseMap map[string][]sarama.DescribeLogDirsResponsePartition) []string {
+	emptyTopics := make([]string, 0)
+	for topic, partitionMetaDataSlice := range topicWiseMap {
+		isEmpty := true
+		for _, partitionMetaData := range partitionMetaDataSlice {
+			if partitionMetaData.Size != 0 {
+				isEmpty = false
+				break
+			}
+		}
+		if isEmpty {
+			emptyTopics = append(emptyTopics, topic)
+		}
+	}
+	return emptyTopics
+}
+
+func getTopicWiseMetaDataMap(brokerMetaDataMap map[int32][]sarama.DescribeLogDirsResponseDirMetadata, brokerMap map[int]string) (map[string][]sarama.DescribeLogDirsResponsePartition, error) {
+	topicWiseMap := make(map[string][]sarama.DescribeLogDirsResponsePartition)
+	for brokerID, brokerWiseMetaData := range brokerMetaDataMap {
+		for _, logDirsMeta := range brokerWiseMetaData {
+			if logDirsMeta.ErrorCode == sarama.ErrNoError {
+				for _, topicWiseMetaData := range logDirsMeta.Topics {
+					topic := topicWiseMetaData.Topic
+					if topicWiseMap[topic] == nil {
+						topicWiseMap[topic] = make([]sarama.DescribeLogDirsResponsePartition, 0)
+					}
+					topicWiseMap[topic] = append(topicWiseMap[topic], topicWiseMetaData.Partitions...)
+				}
+			} else {
+				err := fmt.Errorf("broker %s: %w", brokerMap[int(brokerID)], logDirsMeta.ErrorCode)
+				logger.Errorf("%v\n", err)
+				return nil, err
+			}
+		}
+	}
+	return topicWiseMap, nil
 }
