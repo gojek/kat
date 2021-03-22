@@ -54,7 +54,7 @@ func init() {
 	ListTopicCmd.PersistentFlags().StringP("data-dir", "d", "/var/log/kafka", "Data directory for kafka logs") // data directory can be fetched with describeLogDirs request making the parameter redundant
 	ListTopicCmd.PersistentFlags().StringP("ssh-port", "p", ssh_config.Default("Port"), "Ssh port on the kafka brokers")
 	ListTopicCmd.PersistentFlags().StringP("ssh-key-file-path", "k", "~/.ssh/id_rsa", "Path to ssh key file")
-	ListTopicCmd.PersistentFlags().BoolP("empty", "i", false, "Return only empty topics")
+	ListTopicCmd.PersistentFlags().BoolP("empty", "e", false, "Return only empty topics")
 }
 
 func getLastWrite(lastWrite int64, isEmpty bool) int64 {
