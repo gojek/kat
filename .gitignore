@@ -4,3 +4,4 @@ vendor/
 *.swp
 out/
 coverage*
+.vscode/

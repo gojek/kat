@@ -20,7 +20,7 @@ type listTopic struct {
 	replicationFactor int
 	lastWrite         int64
 	dataDir           string
-	isEmpty	          bool
+	isEmpty           bool
 }
 
 var ListTopicCmd = &cobra.Command{
@@ -42,7 +42,7 @@ var ListTopicCmd = &cobra.Command{
 			replicationFactor: cobraUtil.GetIntArg("replication-factor"),
 			lastWrite:         lastWrite,
 			dataDir:           cobraUtil.GetStringArg("data-dir"),
-			isEmpty:          isEmpty,
+			isEmpty:           isEmpty,
 		}
 		l.listTopic()
 	},
@@ -51,7 +51,7 @@ var ListTopicCmd = &cobra.Command{
 func init() {
 	ListTopicCmd.PersistentFlags().IntP("replication-factor", "r", 0, "Replication Factor of the topic")
 	ListTopicCmd.PersistentFlags().Int64P("last-write", "l", 0, "Last write time for topics in epoch format")
-	ListTopicCmd.PersistentFlags().StringP("data-dir", "d", "/var/log/kafka", "Data directory for kafka logs")
+	ListTopicCmd.PersistentFlags().StringP("data-dir", "d", "/var/log/kafka", "Data directory for kafka logs") // data directory can be fetched with describeLogDirs request making the parameter redundant
 	ListTopicCmd.PersistentFlags().StringP("ssh-port", "p", ssh_config.Default("Port"), "Ssh port on the kafka brokers")
 	ListTopicCmd.PersistentFlags().StringP("ssh-key-file-path", "k", "~/.ssh/id_rsa", "Path to ssh key file")
 	ListTopicCmd.PersistentFlags().BoolP("empty", "i", false, "Return only empty topics")

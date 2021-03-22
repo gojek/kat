@@ -94,11 +94,11 @@ func (m *MockClusterAdmin) Close() error {
 	return args.Error(0)
 }
 
-func (m *MockClusterAdmin) AlterPartitionReassignments(topic string, assignment [][]int32) error{
+func (m *MockClusterAdmin) AlterPartitionReassignments(topic string, assignment [][]int32) error {
 	panic("unused")
 }
 
-func (m *MockClusterAdmin) DescribeLogDirs(brokers []int32) (map[int32][]sarama.DescribeLogDirsResponseDirMetadata, error){
+func (m *MockClusterAdmin) DescribeLogDirs(brokers []int32) (map[int32][]sarama.DescribeLogDirsResponseDirMetadata, error) {
 	args := m.Called(brokers)
 	if args.Get(0) != nil {
 		return args.Get(0).(map[int32][]sarama.DescribeLogDirsResponseDirMetadata), args.Error(1)
