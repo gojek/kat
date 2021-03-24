@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const defaultLastWrittenTime int64 = 2 * 7 * 24 * 60 * 60
+const defaultLastWrittenTime time.Duration = 2 * 7 * 24 * time.Hour
 
 type listTopic struct {
 	client.Lister
@@ -59,7 +59,7 @@ func init() {
 
 func getLastWrite(lastWrite int64, isEmpty bool) int64 {
 	if isEmpty && lastWrite == 0 {
-		return time.Now().Unix() - defaultLastWrittenTime
+		return time.Now().Add(defaultLastWrittenTime*(-1)).Unix()
 	}
 	return lastWrite
 }
