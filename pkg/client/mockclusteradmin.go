@@ -106,6 +106,7 @@ func (m *MockClusterAdmin) DescribeLogDirs(brokers []int32) (map[int32][]sarama.
 	return nil, args.Error(1)
 }
 
-func (m *MockClusterAdmin) ListPartitionReassignments(topics string, partitions []int32) (topicStatus map[string]map[int32]*sarama.PartitionReplicaReassignmentsStatus, err error) {
+func (m *MockClusterAdmin) ListPartitionReassignments(topics string,
+	partitions []int32) (topicStatus map[string]map[int32]*sarama.PartitionReplicaReassignmentsStatus, err error) {
 	panic("unused")
 }

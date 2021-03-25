@@ -2,6 +2,8 @@ package client
 
 import (
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/Shopify/sarama"
@@ -306,194 +308,103 @@ func TestSaramaClient_GetEmptyTopicsSuccess(t *testing.T) {
 	mockClient := &MockSaramaClient{}
 	client := SaramaClient{admin: admin, client: mockClient}
 	brokerIDs := []int32{-1}
-	brokerMetaData := getLogDirsValue(sarama.ErrNoError)
 	brokers := []*sarama.Broker{sarama.NewBroker("broker-1:1234")}
 	mockClient.On("Brokers").Return(brokers).Once()
-	admin.On("DescribeLogDirs", brokerIDs).Return(brokerMetaData, nil).Once() //brokerid and response have different ids to check proper implementation
-
-	topics, err := client.GetEmptyTopics()
-
-	assert.NoError(t, err)
-	assert.ElementsMatch(t, []string{"topic-1"}, topics)
+	admin.On("DescribeLogDirs", brokerIDs).Return(nil, errors.New("sample error")).Once() //brokerid and response have different ids to check proper implementation
+	logDirs, err := client.DescribeLogDirs(brokerIDs)
+	assert.Nil(t, logDirs)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "sample error")
 	admin.AssertExpectations(t)
 }
 
-func TestSaramaClient_GetEmptyTopicsFailure(t *testing.T) {
+func TestSaramaClient_GetLogDirsSuccess(t *testing.T) {
 	admin := &MockClusterAdmin{}
 	mockClient := &MockSaramaClient{}
 	client := SaramaClient{admin: admin, client: mockClient}
 	brokerIDs := []int32{-1}
-	brokerMetaData := getLogDirsValue(sarama.ErrLeaderNotAvailable)
+	brokerMap := make(map[int32][]string)
+	brokerMap[-1] = []string{"topic-1#1:0,2:0,4:0", "topic-2#2:0,4:0"}
+	brokerMap[2] = []string{"topic-1#3:0", "topic-2#1:0,3:0"}
+	expectedBrokerMetaData := getBrokerMetaData(brokerMap, nil)
+	saramaBrokerMetaData := getSaramaBrokerMetaData(brokerMap, sarama.ErrNoError)
 	brokers := []*sarama.Broker{sarama.NewBroker("broker-1:1234")}
 	mockClient.On("Brokers").Return(brokers).Once()
-	admin.On("DescribeLogDirs", brokerIDs).Return(brokerMetaData, nil).Once() //brokerid and response have different ids to check proper implementation
-
-	topics, err := client.GetEmptyTopics()
-
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, sarama.ErrLeaderNotAvailable))
-	assert.Nil(t, topics)
+	admin.On("DescribeLogDirs", brokerIDs).Return(saramaBrokerMetaData, nil).Once() //brokerid and response have different ids to check proper implementation
+	logDirsMap, err := client.DescribeLogDirs(brokerIDs)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedBrokerMetaData, logDirsMap)
 	admin.AssertExpectations(t)
 }
 
-func getLogDirsValue(errorCode sarama.KError) map[int32][]sarama.DescribeLogDirsResponseDirMetadata {
-	brokerMetaData := make(map[int32][]sarama.DescribeLogDirsResponseDirMetadata)
-	brokerMetaData[-1] = []sarama.DescribeLogDirsResponseDirMetadata{
-		{
-			ErrorCode: errorCode,
-			Topics: []sarama.DescribeLogDirsResponseTopic{
-				{
-					Topic: "topic-1",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 0,
-							Size:        0,
-						},
-						{
-							PartitionID: 1,
-							Size:        0,
-						},
-						{
-							PartitionID: 2,
-							Size:        0,
-						},
-					},
-				},
-				{
-					Topic: "topic-2",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 0,
-							Size:        0,
-						},
-						{
-							PartitionID: 1,
-							Size:        0,
-						},
-						{
-							PartitionID: 2,
-							Size:        0,
-						},
-					},
-				},
-			},
-		},
-		{
-			Topics: []sarama.DescribeLogDirsResponseTopic{
-				{
-					Topic: "topic-1",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 0,
-							Size:        0,
-						},
-						{
-							PartitionID: 1,
-							Size:        0,
-						},
-						{
-							PartitionID: 2,
-							Size:        0,
-						},
-					},
-				},
-				{
-					Topic: "topic-2",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 0,
-							Size:        0,
-						},
-						{
-							PartitionID: 1,
-							Size:        0,
-						},
-						{
-							PartitionID: 2,
-							Size:        0,
-						},
-					},
-				},
-			},
-		},
+func TestSaramaClient_GetLogDirsSuccessErrorConversion(t *testing.T) {
+	admin := &MockClusterAdmin{}
+	mockClient := &MockSaramaClient{}
+	client := SaramaClient{admin: admin, client: mockClient}
+	brokerIDs := []int32{-1}
+	brokerMap := make(map[int32][]string)
+	brokerMap[-1] = []string{"topic-1#1:0,2:0,4:0", "topic-2#2:0,4:0"}
+	brokerMap[2] = []string{"topic-1#3:0", "topic-2#1:0,3:0"}
+	saramaBrokerMetaData := getSaramaBrokerMetaData(brokerMap, sarama.ErrBrokerNotAvailable)
+	brokers := []*sarama.Broker{sarama.NewBroker("broker-1:1234")}
+	mockClient.On("Brokers").Return(brokers).Once()
+	admin.On("DescribeLogDirs", brokerIDs).Return(saramaBrokerMetaData, nil).Once() //brokerid and response have different ids to check proper implementation
+	logDirsMap, err := client.DescribeLogDirs(brokerIDs)
+	assert.Nil(t, err)
+	assert.NotNil(t, logDirsMap[-1][0].Error)
+	admin.AssertExpectations(t)
+}
+
+func getTopicPartitions(topic string, partitions []string) DescribeLogDirsResponseTopic {
+	list := make([]DescribeLogDirsResponsePartition, 0, len(partitions))
+	for _, val := range partitions {
+		splitStrings := strings.Split(val, ":")
+		id, _ := strconv.ParseInt(splitStrings[0], 10, 32)
+		size, _ := strconv.ParseInt(splitStrings[1], 10, 64)
+		list = append(list, DescribeLogDirsResponsePartition{PartitionID: int32(id), Size: size})
 	}
-	brokerMetaData[2] = []sarama.DescribeLogDirsResponseDirMetadata{
-		{
-			Topics: []sarama.DescribeLogDirsResponseTopic{
-				{
-					Topic: "topic-1",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 3,
-							Size:        0,
-						},
-						{
-							PartitionID: 4,
-							Size:        0,
-						},
-						{
-							PartitionID: 5,
-							Size:        0,
-						},
-					},
-				},
-				{
-					Topic: "topic-2",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 4,
-							Size:        0,
-						},
-						{
-							PartitionID: 5,
-							Size:        0,
-						},
-						{
-							PartitionID: 6,
-							Size:        1,
-						},
-					},
-				},
-			},
-		},
-		{
-			Topics: []sarama.DescribeLogDirsResponseTopic{
-				{
-					Topic: "topic-1",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 0,
-							Size:        0,
-						},
-						{
-							PartitionID: 1,
-							Size:        0,
-						},
-						{
-							PartitionID: 2,
-							Size:        0,
-						},
-					},
-				},
-				{
-					Topic: "topic-2",
-					Partitions: []sarama.DescribeLogDirsResponsePartition{
-						{
-							PartitionID: 0,
-							Size:        0,
-						},
-						{
-							PartitionID: 1,
-							Size:        0,
-						},
-						{
-							PartitionID: 2,
-							Size:        0,
-						},
-					},
-				},
-			},
-		},
+	return DescribeLogDirsResponseTopic{Topic: topic, Partitions: list}
+}
+
+func getSaramaTopicPartitions(topic string, partitions []string) sarama.DescribeLogDirsResponseTopic {
+	list := make([]sarama.DescribeLogDirsResponsePartition, 0, len(partitions))
+	for _, val := range partitions {
+		splitStrings := strings.Split(val, ":")
+		id, _ := strconv.ParseInt(splitStrings[0], 10, 32)
+		size, _ := strconv.ParseInt(splitStrings[1], 10, 64)
+		list = append(list, sarama.DescribeLogDirsResponsePartition{PartitionID: int32(id), Size: size})
 	}
-	return brokerMetaData
+	return sarama.DescribeLogDirsResponseTopic{Topic: topic, Partitions: list}
+}
+
+func getBrokerMetaData(configMap map[int32][]string, err error) map[int32][]DescribeLogDirsResponseDirMetadata {
+	brokerMap := make(map[int32][]DescribeLogDirsResponseDirMetadata, len(configMap))
+	for brokerID, configList := range configMap {
+		topicList := make([]DescribeLogDirsResponseTopic, 0, len(configList))
+		for _, conf := range configList {
+			t1 := strings.Split(conf, "#")
+			p := strings.Split(t1[1], ",")
+			topic := getTopicPartitions(t1[0], p)
+			topicList = append(topicList, topic)
+		}
+		brokerList := []DescribeLogDirsResponseDirMetadata{{Topics: topicList, Error: err}}
+		brokerMap[brokerID] = brokerList
+	}
+	return brokerMap
+}
+
+func getSaramaBrokerMetaData(configMap map[int32][]string, err sarama.KError) map[int32][]sarama.DescribeLogDirsResponseDirMetadata {
+	brokerMap := make(map[int32][]sarama.DescribeLogDirsResponseDirMetadata, len(configMap))
+	for brokerID, configList := range configMap {
+		topicList := make([]sarama.DescribeLogDirsResponseTopic, 0, len(configList))
+		for _, conf := range configList {
+			t1 := strings.Split(conf, "#")
+			p := strings.Split(t1[1], ",")
+			topic := getSaramaTopicPartitions(t1[0], p)
+			topicList = append(topicList, topic)
+		}
+		brokerList := []sarama.DescribeLogDirsResponseDirMetadata{{Topics: topicList, ErrorCode: err}}
+		brokerMap[brokerID] = brokerList
+	}
+	return brokerMap
 }

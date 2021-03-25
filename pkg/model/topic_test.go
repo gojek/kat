@@ -2,6 +2,8 @@ package model
 
 import (
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/gojek/kat/pkg/client"
@@ -250,54 +252,75 @@ func TestTopic_CreatePartitionsFailure(t *testing.T) {
 	kafkaClient.AssertExpectations(t)
 }
 
-// func TestTopic_ListEmptyLastWrittenSuccess(t *testing.T) {
-// 	kafkaClient := &client.MockKafkaAPIClient{}
-// 	sshClient := &client.MockSSHClient{}
-// 	topicCli, _ := NewTopic(kafkaClient, withMockSSHClient(sshClient))
-// 	lastWrittenEpoch := int64(123123)
-// 	dataDir := "/tmp"
-// 	emptyTopicList := []string{"Etopic1", "Etopic2"}
-// 	lastWrittenTopics := []string{"Lwtopic1", "Etopic2", "LwTopic2"}
-// 	kafkaClient.On("GetEmptyTopics").Return(emptyTopicList, nil).Once()
-// 	sshClient.On("ListTopics", client.ListTopicsRequest{LastWritten: lastWrittenEpoch, DataDir: dataDir}).Return(lastWrittenTopics, nil).Once()
-
-// 	responseTopics, err := topicCli.ListEmptyLastWrittenTopics(lastWrittenEpoch, dataDir)
-
-// 	require.NoError(t, err)
-// 	assert.ElementsMatch(t, []string{"Etopic2"}, responseTopics)
-// 	kafkaClient.AssertExpectations(t)
-// }
-
-func TestTopic_ListTopicWithSize(t *testing.T) {
+func TestTopic_ListSizeLessThanEqualToSuccess(t *testing.T) {
 	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, _ := NewTopic(kafkaClient)
+	size := int64(0)
+	brokerMetaDataConfig := map[int32][]string{
+		-1: {"topic-1#1:0,2:0,3:0", "topic-2#4:0,5:0,6:0"},
+		2:  {"topic-1#4:0,5:0,6:0", "topic-2#1:0,2:0,3:1"},
+	}
+	brokers := map[int]string{-1: "broker-1", 2: "broker-2"}
+	metaData := getBrokerMetaData(brokerMetaDataConfig, nil)
+	kafkaClient.On("ListBrokers").Return(brokers, nil).Twice()
+	kafkaClient.On("DescribeLogDirs", []int32{-1, 2}).Return(metaData, nil).Twice()
 
-	emptyError := errors.New("error while fetching empty topics")
-	kafkaClient.On("GetEmptyTopics").Return(nil, emptyError).Once()
+	responseTopics, err := topicCli.ListTopicWithSizeLessThanOrEqualTo(size)
+
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"topic-1"}, responseTopics)
+
+	responseTopics2, err2 := topicCli.ListTopicWithSizeLessThanOrEqualTo(100)
+
+	require.NoError(t, err2)
+	assert.ElementsMatch(t, []string{"topic-1", "topic-2"}, responseTopics2)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_ListSizeLessThanEqualToFailure(t *testing.T) {
+	kafkaClient := &client.MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	brokerMetaDataConfig := map[int32][]string{
+		-1: {"topic-1#1:0,2:0,3:0", "topic-2#4:0,5:0,6:0"},
+		2:  {"topic-1#4:0,5:0,6:0", "topic-2#1:0,2:0,3:1"},
+	}
+	sampleErr := errors.New("sample error")
+	brokers := map[int]string{-1: "broker-1", 2: "broker-2"}
+	metaData := getBrokerMetaData(brokerMetaDataConfig, sampleErr)
+	kafkaClient.On("ListBrokers").Return(brokers, nil).Once()
+	kafkaClient.On("DescribeLogDirs", []int32{-1, 2}).Return(metaData, nil).Once()
 
 	responseTopics, err := topicCli.ListTopicWithSizeLessThanOrEqualTo(0)
 
 	require.Error(t, err)
-	assert.EqualError(t, err, emptyError.Error())
+	assert.EqualError(t, err, sampleErr.Error())
 	assert.Nil(t, responseTopics)
 	kafkaClient.AssertExpectations(t)
 }
 
-// func TestTopic_ListEmptyLastWrittenListLastWrittenFailure(t *testing.T) {
-// 	kafkaClient := &client.MockKafkaAPIClient{}
-// 	sshClient := &client.MockSSHClient{}
-// 	topicCli, _ := NewTopic(kafkaClient, withMockSSHClient(sshClient))
-// 	lastWrittenEpoch := int64(123123)
-// 	dataDir := "/tmp"
-// 	emptyTopicList := []string{"Etopic1", "Etopic2"}
-// 	lastWrittenError := errors.New("error while fetching last written topics")
-// 	kafkaClient.On("GetEmptyTopics").Return(emptyTopicList, nil).Once()
-// 	sshClient.On("ListTopics", client.ListTopicsRequest{LastWritten: lastWrittenEpoch, DataDir: dataDir}).Return(nil, lastWrittenError).Once()
+func getTopicPartitions(topic string, partitions []string) client.DescribeLogDirsResponseTopic {
+	list := make([]client.DescribeLogDirsResponsePartition, 0, len(partitions))
+	for _, val := range partitions {
+		splitStrings := strings.Split(val, ":")
+		id, _ := strconv.ParseInt(splitStrings[0], 10, 32)
+		size, _ := strconv.ParseInt(splitStrings[1], 10, 64)
+		list = append(list, client.DescribeLogDirsResponsePartition{PartitionID: int32(id), Size: size})
+	}
+	return client.DescribeLogDirsResponseTopic{Topic: topic, Partitions: list}
+}
 
-// 	responseTopics, err := topicCli.ListEmptyLastWrittenTopics(lastWrittenEpoch, dataDir)
-
-// 	require.Error(t, err)
-// 	assert.EqualError(t, err, lastWrittenError.Error())
-// 	assert.Nil(t, responseTopics)
-// 	kafkaClient.AssertExpectations(t)
-// }
+func getBrokerMetaData(configMap map[int32][]string, err error) map[int32][]client.DescribeLogDirsResponseDirMetadata {
+	brokerMap := make(map[int32][]client.DescribeLogDirsResponseDirMetadata, len(configMap))
+	for brokerID, configList := range configMap {
+		topicList := make([]client.DescribeLogDirsResponseTopic, 0, len(configList))
+		for _, conf := range configList {
+			t1 := strings.Split(conf, "#")
+			p := strings.Split(t1[1], ",")
+			topic := getTopicPartitions(t1[0], p)
+			topicList = append(topicList, topic)
+		}
+		brokerList := []client.DescribeLogDirsResponseDirMetadata{{Topics: topicList, Error: err}}
+		brokerMap[brokerID] = brokerList
+	}
+	return brokerMap
+}

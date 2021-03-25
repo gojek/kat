@@ -51,10 +51,10 @@ func (m *MockKafkaAPIClient) GetConfig(resource ConfigResource) ([]ConfigEntry, 
 	return args.Get(0).([]ConfigEntry), args.Error(1)
 }
 
-func (m *MockKafkaAPIClient) GetEmptyTopics() ([]string, error) {
-	args := m.Called()
+func (m *MockKafkaAPIClient) DescribeLogDirs(brokerIDs []int32) (map[int32][]DescribeLogDirsResponseDirMetadata, error) {
+	args := m.Called(brokerIDs)
 	if args.Get(0) != nil {
-		return args.Get(0).([]string), args.Error(1)
+		return args.Get(0).(map[int32][]DescribeLogDirsResponseDirMetadata), args.Error(1)
 	}
 	return nil, args.Error(1)
 }

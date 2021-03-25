@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -211,59 +212,53 @@ func (s *SaramaClient) GetConfig(resource ConfigResource) ([]ConfigEntry, error)
 	return configEntries, nil
 }
 
-func (s *SaramaClient) GetEmptyTopics() ([]string, error) {
-	brokerMap := s.ListBrokers()
-	brokerIds := make([]int32, 0)
-	for id := range brokerMap {
-		brokerIds = append(brokerIds, int32(id))
-	}
-	metaData, err := s.admin.DescribeLogDirs(brokerIds)
+func (s *SaramaClient) DescribeLogDirs(brokerIDs []int32) (map[int32][]DescribeLogDirsResponseDirMetadata, error) {
+	metaData, err := s.admin.DescribeLogDirs(brokerIDs)
 	if err != nil {
 		return nil, err
 	}
-	topicWiseMap, err := getTopicWiseMetaDataMap(metaData, brokerMap)
-	if err != nil {
-		return nil, err
+	brokerWiseLogDirsResponseMetaData := make(map[int32][]DescribeLogDirsResponseDirMetadata, len(brokerIDs))
+	for brokerID, brokerMetaDataList := range metaData {
+		list := make([]DescribeLogDirsResponseDirMetadata, 0)
+		for _, logDirsResponseMetaData := range brokerMetaDataList {
+			var err error
+			if logDirsResponseMetaData.ErrorCode != sarama.ErrNoError {
+				err = fmt.Errorf("broker Id: %d, error: %w", brokerID, errors.New(logDirsResponseMetaData.ErrorCode.Error()))
+			}
+			rMeta := DescribeLogDirsResponseDirMetadata{
+				Error:  err,
+				Path:   logDirsResponseMetaData.Path,
+				Topics: getLogDirsTopics(logDirsResponseMetaData.Topics),
+			}
+			list = append(list, rMeta)
+		}
+		brokerWiseLogDirsResponseMetaData[brokerID] = list
 	}
-	emptyTopics := getZeroSizeTopics(topicWiseMap)
-	return emptyTopics, nil
+	return brokerWiseLogDirsResponseMetaData, nil
 }
 
-func getZeroSizeTopics(topicWiseMap map[string][]sarama.DescribeLogDirsResponsePartition) []string {
-	emptyTopics := make([]string, 0)
-	for topic, partitionMetaDataSlice := range topicWiseMap {
-		isEmpty := true
-		for _, partitionMetaData := range partitionMetaDataSlice {
-			if partitionMetaData.Size != 0 {
-				isEmpty = false
-				break
-			}
+func getLogDirsTopics(topics []sarama.DescribeLogDirsResponseTopic) []DescribeLogDirsResponseTopic {
+	list := make([]DescribeLogDirsResponseTopic, 0, len(topics))
+	for _, topic := range topics {
+		rTopic := DescribeLogDirsResponseTopic{
+			Topic:      topic.Topic,
+			Partitions: getLogDirsPartition(topic.Partitions),
 		}
-		if isEmpty {
-			emptyTopics = append(emptyTopics, topic)
-		}
+		list = append(list, rTopic)
 	}
-	return emptyTopics
+	return list
 }
 
-func getTopicWiseMetaDataMap(brokerMetaDataMap map[int32][]sarama.DescribeLogDirsResponseDirMetadata, brokerMap map[int]string) (map[string][]sarama.DescribeLogDirsResponsePartition, error) {
-	topicWiseMap := make(map[string][]sarama.DescribeLogDirsResponsePartition)
-	for brokerID, brokerWiseMetaData := range brokerMetaDataMap {
-		for _, logDirsMeta := range brokerWiseMetaData {
-			if logDirsMeta.ErrorCode == sarama.ErrNoError {
-				for _, topicWiseMetaData := range logDirsMeta.Topics {
-					topic := topicWiseMetaData.Topic
-					if topicWiseMap[topic] == nil {
-						topicWiseMap[topic] = make([]sarama.DescribeLogDirsResponsePartition, 0)
-					}
-					topicWiseMap[topic] = append(topicWiseMap[topic], topicWiseMetaData.Partitions...)
-				}
-			} else {
-				err := fmt.Errorf("broker %s: %w", brokerMap[int(brokerID)], logDirsMeta.ErrorCode)
-				logger.Errorf("%v\n", err)
-				return nil, err
-			}
+func getLogDirsPartition(partitions []sarama.DescribeLogDirsResponsePartition) []DescribeLogDirsResponsePartition {
+	list := make([]DescribeLogDirsResponsePartition, 0, len(partitions))
+	for _, partition := range partitions {
+		rPartition := DescribeLogDirsResponsePartition{
+			PartitionID: partition.PartitionID,
+			Size:        partition.Size,
+			OffsetLag:   partition.OffsetLag,
+			IsTemporary: partition.IsTemporary,
 		}
+		list = append(list, rPartition)
 	}
-	return topicWiseMap, nil
+	return list
 }

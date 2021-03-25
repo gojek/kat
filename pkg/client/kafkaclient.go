@@ -50,6 +50,24 @@ type ListTopicsRequest struct {
 	DataDir     string
 }
 
+type DescribeLogDirsResponseDirMetadata struct {
+	Error  error
+	Path   string
+	Topics []DescribeLogDirsResponseTopic
+}
+
+type DescribeLogDirsResponseTopic struct {
+	Topic      string
+	Partitions []DescribeLogDirsResponsePartition
+}
+
+type DescribeLogDirsResponsePartition struct {
+	PartitionID int32
+	Size        int64
+	OffsetLag   int64
+	IsTemporary bool
+}
+
 type KafkaAPIClient interface {
 	CreateTopic(topic string, detail TopicDetail, validateOnly bool) error
 	CreatePartitions(topic string, count int32, assignment [][]int32, validateOnly bool) error
@@ -60,7 +78,7 @@ type KafkaAPIClient interface {
 	UpdateConfig(resourceType int, name string, entries map[string]*string, validateOnly bool) error
 	GetTopicResourceType() int
 	GetConfig(resource ConfigResource) ([]ConfigEntry, error)
-	GetEmptyTopics() ([]string, error)
+	DescribeLogDirs(brokerIDs []int32) (map[int32][]DescribeLogDirsResponseDirMetadata, error)
 }
 
 type KafkaSSHClient interface {
