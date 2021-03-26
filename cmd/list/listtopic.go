@@ -61,7 +61,6 @@ func (l *listTopic) listTopic() {
 	topics, err := l.getTopicsFilteredByFlags()
 	if err != nil {
 		logger.Fatalf("Error while fetching topic list - %v\n", err)
-		return
 	}
 	if len(topics) == 0 {
 		logger.Info("No topics found")
@@ -85,12 +84,8 @@ func (l *listTopic) getTopicsFilteredByFlags() ([]string, error) {
 	select {
 	case err := <-errorChannel:
 		return nil, err
-	case topic := <-sizeFilteredTopicsChannel:
-		if topic != "" {
-			topics := append(getListFromChannel(sizeFilteredTopicsChannel), topic)
-			return topics, nil
-		}
-		return []string{}, nil
+	default:
+		return getListFromChannel(sizeFilteredTopicsChannel), nil
 	}
 }
 
@@ -126,8 +121,8 @@ func (l *listTopic) listAllTopics(ctx context.Context, cancelFunc context.Cancel
 	}
 }
 
-func (l *listTopic) listLastWrittenTopics(ctx context.Context, cancelFunc context.CancelFunc, inputChannel chan string,
-	topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
+func (l *listTopic) listLastWrittenTopics(ctx context.Context, cancelFunc context.CancelFunc,
+	inputChannel, topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
 	defer close(topicsChannel)
 	if l.lastWrite == 0 {
 		wg.Done()
@@ -158,8 +153,8 @@ func (l *listTopic) listLastWrittenTopics(ctx context.Context, cancelFunc contex
 	}
 }
 
-func (l *listTopic) listTopicWithSizeFilter(ctx context.Context, cancelFunc context.CancelFunc, inputChannel chan string,
-	topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
+func (l *listTopic) listTopicWithSizeFilter(ctx context.Context, cancelFunc context.CancelFunc,
+	inputChannel, topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
 	defer close(topicsChannel)
 	if l.size < 0 {
 		wg.Done()
