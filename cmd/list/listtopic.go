@@ -1,6 +1,7 @@
 package list
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -71,39 +72,25 @@ func (l *listTopic) listTopic() {
 
 func (l *listTopic) getTopicsFilteredByFlags() ([]string, error) {
 	topicsChannel := make(chan string)
-	errorChannel := make(chan error)
+	errorChannel := make(chan error, 3)
 	lastWrittenTopicsChannel := make(chan string)
 	sizeFilteredTopicsChannel := make(chan string)
-	waitChannel := make(chan interface{})
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go l.listAllTopics(topicsChannel, errorChannel, &wg)
-	if l.lastWrite != 0 {
-		wg.Add(1)
-		go l.listLastWrittenTopics(lastWrittenTopicsChannel, errorChannel, &wg)
-	}
-	if l.size >= 0 {
-		wg.Add(1)
-		go l.listTopicWithSizeFilter(sizeFilteredTopicsChannel, errorChannel, &wg)
-	}
-	go func() {
-		wg.Wait()
-		close(waitChannel)
-	}()
+	wg.Add(3)
+	go l.listAllTopics(ctx, cancelFunc, topicsChannel, errorChannel, &wg)
+	go l.listLastWrittenTopics(ctx, cancelFunc, topicsChannel, lastWrittenTopicsChannel, errorChannel, &wg)
+	go l.listTopicWithSizeFilter(ctx, cancelFunc, lastWrittenTopicsChannel, sizeFilteredTopicsChannel, errorChannel, &wg)
+	wg.Wait()
 	select {
 	case err := <-errorChannel:
 		return nil, err
-	case <-waitChannel:
-		topics := getListFromChannel(topicsChannel)
-		if l.lastWrite != 0 {
-			lastWrittenTopics := getListFromChannel(lastWrittenTopicsChannel)
-			topics = getCommonElements(topics, lastWrittenTopics)
+	case topic := <-sizeFilteredTopicsChannel:
+		if topic != "" {
+			topics := append(getListFromChannel(sizeFilteredTopicsChannel), topic)
+			return topics, nil
 		}
-		if l.size >= 0 {
-			sizeFilteredTopics := getListFromChannel(sizeFilteredTopicsChannel)
-			topics = getCommonElements(topics, sizeFilteredTopics)
-		}
-		return topics, nil
+		return []string{}, nil
 	}
 }
 
@@ -115,59 +102,93 @@ func getListFromChannel(channel chan string) []string {
 	return list
 }
 
-func (l *listTopic) listAllTopics(topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
+func (l *listTopic) listAllTopics(ctx context.Context, cancelFunc context.CancelFunc, topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
+	defer close(topicsChannel)
 	topicDetails, err := l.List()
-	if err != nil {
-		errorChannel <- err
-		return
-	}
 	wg.Done()
-	for topicDetail := range topicDetails {
-		if l.replicationFactor == 0 {
-			topicsChannel <- topicDetail
-		} else if int(topicDetails[topicDetail].ReplicationFactor) == l.replicationFactor {
-			topicsChannel <- topicDetail
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		if err != nil {
+			cancelFunc()
+			errorChannel <- err
+			return
 		}
-	}
-	close(topicsChannel)
-}
-
-func (l *listTopic) listLastWrittenTopics(topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
-	topics, err := l.ListLastWrittenTopics(l.lastWrite, l.dataDir)
-	if err != nil {
-		errorChannel <- err
-		return
-	}
-	wg.Done()
-	for _, v := range topics {
-		topicsChannel <- v
-	}
-	close(topicsChannel)
-}
-
-func (l *listTopic) listTopicWithSizeFilter(topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
-	topics, err := l.ListTopicWithSizeLessThanOrEqualTo(l.size)
-	if err != nil {
-		errorChannel <- err
-		return
-	}
-	wg.Done()
-	for _, topic := range topics {
-		topicsChannel <- topic
-	}
-	close(topicsChannel)
-}
-
-func getCommonElements(list1, list2 []string) []string {
-	intersectionList := make([]string, 0)
-	for _, element1 := range list1 {
-		for _, element2 := range list2 {
-			if element1 == element2 {
-				intersectionList = append(intersectionList, element1)
+		for topicDetail := range topicDetails {
+			if l.replicationFactor == 0 {
+				topicsChannel <- topicDetail
+			} else if int(topicDetails[topicDetail].ReplicationFactor) == l.replicationFactor {
+				topicsChannel <- topicDetail
 			}
 		}
+		return
 	}
-	return intersectionList
+}
+
+func (l *listTopic) listLastWrittenTopics(ctx context.Context, cancelFunc context.CancelFunc, inputChannel chan string,
+	topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
+	defer close(topicsChannel)
+	if l.lastWrite == 0 {
+		wg.Done()
+		for topic := range inputChannel {
+			topicsChannel <- topic
+		}
+		return
+	}
+	topics, err := l.ListLastWrittenTopics(l.lastWrite, l.dataDir)
+	wg.Done()
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		if err != nil {
+			cancelFunc()
+			errorChannel <- err
+			return
+		}
+		for inputTopic := range inputChannel {
+			for _, topic := range topics {
+				if inputTopic == topic {
+					topicsChannel <- topic
+				}
+			}
+		}
+		return
+	}
+}
+
+func (l *listTopic) listTopicWithSizeFilter(ctx context.Context, cancelFunc context.CancelFunc, inputChannel chan string,
+	topicsChannel chan string, errorChannel chan error, wg *sync.WaitGroup) {
+	defer close(topicsChannel)
+	if l.size < 0 {
+		wg.Done()
+		for topic := range inputChannel {
+			topicsChannel <- topic
+		}
+		return
+	}
+
+	topics, err := l.ListTopicWithSizeLessThanOrEqualTo(l.size)
+	wg.Done()
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		if err != nil {
+			cancelFunc()
+			errorChannel <- err
+			return
+		}
+		for inputTopic := range inputChannel {
+			for _, topic := range topics {
+				if inputTopic == topic {
+					topicsChannel <- topic
+				}
+			}
+		}
+		return
+	}
 }
 
 func printTopics(topics []string) {

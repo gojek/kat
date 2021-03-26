@@ -64,11 +64,11 @@ func TestList_Error(t *testing.T) {
 func TestListLastWritten_Success(t *testing.T) {
 	mockLister := &client.MockLister{}
 	lastWrite := int64(123123)
-	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(1)
-	mockLister.On("ListLastWrittenTopics", lastWrite, "/tmp").Return([]string{"topic-1"}, nil).Times(1)
+	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}, "topic-2": {}}, nil).Times(1)
+	mockLister.On("ListLastWrittenTopics", lastWrite, "/tmp").Return([]string{"topic-1", "topic-2"}, nil).Times(1)
 	l := listTopic{Lister: mockLister, lastWrite: lastWrite, dataDir: "/tmp", size: -1}
 	topics, err := l.getTopicsFilteredByFlags()
-	assert.ElementsMatch(t, topics, []string{"topic-1"})
+	assert.ElementsMatch(t, topics, []string{"topic-1", "topic-2"})
 	assert.Nil(t, err)
 	mockLister.AssertExpectations(t)
 }
