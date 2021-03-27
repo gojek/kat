@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gojek/kat/pkg/client"
+	"go.uber.org/goleak"
 
 	"bou.ke/monkey"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,7 @@ func init() {
 }
 
 func TestListNoFlags(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(2)
 	l := listTopic{Lister: mockLister, size: -1}
@@ -29,6 +31,7 @@ func TestListNoFlags(t *testing.T) {
 }
 
 func TestList_Success(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {ReplicationFactor: 1}}, nil).Times(1)
 	l := listTopic{Lister: mockLister, replicationFactor: 1, size: -1}
@@ -39,6 +42,7 @@ func TestList_Success(t *testing.T) {
 }
 
 func TestList_Empty(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	mockLister.On("List").Return(map[string]client.TopicDetail{}, nil).Times(1)
 	l := listTopic{Lister: mockLister, replicationFactor: 1, size: -1}
@@ -49,6 +53,7 @@ func TestList_Empty(t *testing.T) {
 }
 
 func TestList_Error(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	mockLister.On("List").Return(map[string]client.TopicDetail{}, errors.New("error")).Times(1)
 	fakeExit := func(int) {
@@ -62,6 +67,7 @@ func TestList_Error(t *testing.T) {
 }
 
 func TestListLastWritten_Success(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	lastWrite := int64(123123)
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}, "topic-2": {}}, nil).Times(1)
@@ -74,6 +80,7 @@ func TestListLastWritten_Success(t *testing.T) {
 }
 
 func TestListLastWritten_Empty(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	lastWrite := int64(123123)
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(1)
@@ -86,6 +93,7 @@ func TestListLastWritten_Empty(t *testing.T) {
 }
 
 func TestListLastWritten_Error(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	lastWrite := int64(123123)
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(1)
@@ -101,6 +109,7 @@ func TestListLastWritten_Error(t *testing.T) {
 }
 
 func TestListSize_Success(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	size := int64(10)
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(1)
@@ -113,6 +122,7 @@ func TestListSize_Success(t *testing.T) {
 }
 
 func TestListSizeOnEmpty_Success(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	size := int64(10)
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(1)
@@ -125,6 +135,7 @@ func TestListSizeOnEmpty_Success(t *testing.T) {
 }
 
 func TestListSize_Failure(t *testing.T) {
+	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	size := int64(10)
 	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(1)
