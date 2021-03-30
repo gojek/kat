@@ -54,7 +54,7 @@ func init() {
 	ListTopicCmd.PersistentFlags().StringP("data-dir", "d", "/var/log/kafka", "Data directory for kafka logs")
 	ListTopicCmd.PersistentFlags().StringP("ssh-port", "p", ssh_config.Default("Port"), "Ssh port on the kafka brokers")
 	ListTopicCmd.PersistentFlags().StringP("ssh-key-file-path", "k", "~/.ssh/id_rsa", "Path to ssh key file")
-	ListTopicCmd.PersistentFlags().Int64P("size", "s", -1, "size less than or equal to specified in bytes")
+	ListTopicCmd.PersistentFlags().Int64P("size", "s", -1, "Size less than or equal to specified in bytes. Compares the true size utilised by topic on disk. ie dataProduced*replicationFactor")
 }
 
 func (l *listTopic) listTopic() {
