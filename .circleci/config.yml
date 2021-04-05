@@ -1,7 +1,6 @@
 version: 2
 jobs:
   build:
-    working_directory: /go/src/github.com/gojek/kat
     docker:
     - image: cimg/go:1.13
     steps:
@@ -34,9 +33,8 @@ jobs:
 
 
   test:
-    working_directory: /go/src/github.com/gojek/kat
     docker:
-    - image: cmg/go:1.13
+    - image: cimg/go:1.13
     steps:
     - checkout
     - setup_remote_docker:
@@ -62,9 +60,8 @@ jobs:
 
 
   release:
-    working_directory: /go/src/github.com/gojek/kat
     docker:
-      - image: cmg/go:1.13
+      - image: cimg/go:1.13
     steps:
       - checkout
       - setup_remote_docker:
