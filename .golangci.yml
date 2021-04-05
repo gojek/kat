@@ -76,6 +76,7 @@ run:
   skip-dirs:
     - test/testdata_etc
     - pkg/golinters/goanalysis/(checker|passes)
+    - pkg/io #inbuilt package throws permission error, hence excluded
   tests: false
 
 issues:

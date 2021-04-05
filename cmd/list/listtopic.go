@@ -54,7 +54,8 @@ func init() {
 	ListTopicCmd.PersistentFlags().StringP("data-dir", "d", "/var/log/kafka", "Data directory for kafka logs")
 	ListTopicCmd.PersistentFlags().StringP("ssh-port", "p", ssh_config.Default("Port"), "Ssh port on the kafka brokers")
 	ListTopicCmd.PersistentFlags().StringP("ssh-key-file-path", "k", "~/.ssh/id_rsa", "Path to ssh key file")
-	ListTopicCmd.PersistentFlags().Int64P("size", "s", -1, "Size less than or equal to specified in bytes. Compares the true size utilised by topic on disk. ie dataProduced*replicationFactor")
+	ListTopicCmd.PersistentFlags().Int64P("size", "s", -1,
+		"Size less than or equal to specified in bytes. Compares the true size utilized by topic on disk. ie dataProduced*replicationFactor")
 }
 
 func (l *listTopic) listTopic() {
@@ -110,14 +111,25 @@ func (l *listTopic) listAllTopics(ctx context.Context, cancelFunc context.Cancel
 			errorChannel <- err
 			return
 		}
-		for topicDetail := range topicDetails {
-			if l.replicationFactor == 0 {
-				topicsChannel <- topicDetail
-			} else if int(topicDetails[topicDetail].ReplicationFactor) == l.replicationFactor {
-				topicsChannel <- topicDetail
+		processTopicsByReplicationFactor(ctx, l.replicationFactor, topicsChannel, topicDetails)
+	}
+}
+
+func processTopicsByReplicationFactor(ctx context.Context, replicationFactor int, topicsChannel chan string, topicDetails map[string]client.TopicDetail) {
+	for topicDetail := range topicDetails {
+		if replicationFactor == 0 {
+			select {
+			case <-ctx.Done():
+				return
+			case topicsChannel <- topicDetail:
+			}
+		} else if int(topicDetails[topicDetail].ReplicationFactor) == replicationFactor {
+			select {
+			case <-ctx.Done():
+				return
+			case topicsChannel <- topicDetail:
 			}
 		}
-		return
 	}
 }
 
@@ -142,13 +154,7 @@ func (l *listTopic) listLastWrittenTopics(ctx context.Context, cancelFunc contex
 			errorChannel <- err
 			return
 		}
-		for inputTopic := range inputChannel {
-			for _, topic := range topics {
-				if inputTopic == topic {
-					topicsChannel <- topic
-				}
-			}
-		}
+		findCommonElement(ctx, topicsChannel, inputChannel, topics)
 		return
 	}
 }
@@ -175,14 +181,22 @@ func (l *listTopic) listTopicWithSizeFilter(ctx context.Context, cancelFunc cont
 			errorChannel <- err
 			return
 		}
-		for inputTopic := range inputChannel {
-			for _, topic := range topics {
-				if inputTopic == topic {
-					topicsChannel <- topic
+		findCommonElement(ctx, topicsChannel, inputChannel, topics)
+		return
+	}
+}
+
+func findCommonElement(ctx context.Context, topicsChannel, inputChannel chan string, topics []string) {
+	for inputTopic := range inputChannel {
+		for _, topic := range topics {
+			if inputTopic == topic {
+				select {
+				case <-ctx.Done():
+					return
+				case topicsChannel <- topic:
 				}
 			}
 		}
-		return
 	}
 }
 

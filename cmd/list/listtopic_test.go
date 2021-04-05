@@ -96,7 +96,7 @@ func TestListLastWritten_Error(t *testing.T) {
 	defer goleak.VerifyNone(t)
 	mockLister := &client.MockLister{}
 	lastWrite := int64(123123)
-	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}}, nil).Times(1)
+	mockLister.On("List").Return(map[string]client.TopicDetail{"topic-1": {}, "topic-2": {}}, nil).Times(1)
 	mockLister.On("ListLastWrittenTopics", lastWrite, "/tmp").Return([]string{}, errors.New("error")).Times(1)
 	fakeExit := func(int) {
 		panic("os.Exit called")
