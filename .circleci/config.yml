@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/gojek/kat
     docker:
-    - image: circleci/golang:1.11
+    - image: cimg/go:1.13
     steps:
     - checkout
     - setup_remote_docker:
@@ -36,7 +36,7 @@ jobs:
   test:
     working_directory: /go/src/github.com/gojek/kat
     docker:
-    - image: circleci/golang:1.11
+    - image: cmg/go:1.13
     steps:
     - checkout
     - setup_remote_docker:
@@ -64,7 +64,7 @@ jobs:
   release:
     working_directory: /go/src/github.com/gojek/kat
     docker:
-      - image: circleci/golang:1.11
+      - image: cmg/go:1.13
     steps:
       - checkout
       - setup_remote_docker:
