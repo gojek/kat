@@ -28,8 +28,8 @@ func TestListGroupsReturnsSuccess(t *testing.T) {
 
 	consumerGroupsMap := map[string]string{"consumer1": "", "consumer2": ""}
 	mockConsumer.On("ListConsumerGroups").Return(consumerGroupsMap, nil)
-	validateParams := func (token []string) bool { 
-		return (token[0]=="consumer1" && token[1] == "consumer2") || (token[0]=="consumer2" && token[1] == "consumer1")
+	validateParams := func(token []string) bool {
+		return (token[0] == "consumer1" && token[1] == "consumer2") || (token[0] == "consumer2" && token[1] == "consumer1")
 	}
 	mockConsumer.On("GetConsumerGroupsForTopic", mock.MatchedBy(validateParams), "").Return(mockChannel, nil)
 

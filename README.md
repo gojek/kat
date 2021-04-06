@@ -55,6 +55,11 @@ kat topic list --broker-list <"broker1:9092,broker2:9092"> --replication-factor 
 kat topic list --broker-list <"broker1:9092,broker2:9092"> --last-write=<epoch time> --data-dir=<kafka logs directory>
 ```
 
+* List topic with size less than or equal to given size
+```
+kat topic list --broker-list <"broker1:9092,broker2:9092"> --size=<size in bytes>
+```
+
 Topic throughput metrics or last modified time is not available in topic metadata response from kafka. Hence, this tool has a custom implementation of ssh'ing into all the brokers and filtering through the kafka logs directory to find the topics that were not written after the given time. 
 
 ### Describe Topics

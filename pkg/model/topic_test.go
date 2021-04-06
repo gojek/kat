@@ -10,6 +10,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -152,6 +153,7 @@ func TestTopic_ShowConfigSuccess(t *testing.T) {
 func TestTopic_ShowConfigFailure(t *testing.T) {
 	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
+	require.NoError(t, err)
 	expectedErr := errors.New("error")
 
 	topic := "topic1"
@@ -263,7 +265,7 @@ func TestTopic_ListSizeLessThanEqualToSuccess(t *testing.T) {
 	brokers := map[int]string{-1: "broker-1", 2: "broker-2"}
 	metaData := getBrokerMetaData(brokerMetaDataConfig, nil)
 	kafkaClient.On("ListBrokers").Return(brokers, nil).Twice()
-	kafkaClient.On("DescribeLogDirs", []int32{-1, 2}).Return(metaData, nil).Twice()
+	kafkaClient.On("DescribeLogDirs", mock.MatchedBy(validateToken)).Return(metaData, nil).Twice()
 
 	responseTopics, err := topicCli.ListTopicWithSizeLessThanOrEqualTo(size)
 
@@ -288,7 +290,7 @@ func TestTopic_ListSizeLessThanEqualToFailure(t *testing.T) {
 	brokers := map[int]string{-1: "broker-1", 2: "broker-2"}
 	metaData := getBrokerMetaData(brokerMetaDataConfig, sampleErr)
 	kafkaClient.On("ListBrokers").Return(brokers, nil).Once()
-	kafkaClient.On("DescribeLogDirs", []int32{-1, 2}).Return(metaData, nil).Once()
+	kafkaClient.On("DescribeLogDirs", mock.MatchedBy(validateToken)).Return(metaData, nil).Once()
 
 	responseTopics, err := topicCli.ListTopicWithSizeLessThanOrEqualTo(0)
 
@@ -323,4 +325,8 @@ func getBrokerMetaData(configMap map[int32][]string, err error) map[int32][]clie
 		brokerMap[brokerID] = brokerList
 	}
 	return brokerMap
+}
+
+func validateToken(token []int32) bool {
+	return (token[0] == -1 && token[1] == 2) || (token[0] == 2 && token[1] == -1)
 }
