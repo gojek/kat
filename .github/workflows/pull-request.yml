@@ -1,0 +1,45 @@
+name: pull-request
+on:
+  pull_request:
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup-go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '^1.13.1'
+      - name: setup-project
+        run: make setup
+      - name: build
+        run: |
+          env GO111MODULE=on go mod verify
+          env GO111MODULE=on make clean build
+  test: 
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup-go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '^1.13.1'
+      - name: setup-project
+        run: make setup
+      - name: test
+        run: make test
+  golangci:
+    name: golangci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup-go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '^1.13.1'
+      - name: setup-project
+        run: make setup
+      - name: lint
+        run: make golangci

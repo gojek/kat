@@ -70,6 +70,14 @@ func (m *MockSaramaClient) InitProducerID() (*sarama.InitProducerIDResponse, err
 	panic("implement me")
 }
 
+func (m *MockSaramaClient) RefreshBrokers(addrs []string) error {
+	panic("implement me")
+}
+
+func (m *MockSaramaClient) RefreshController() (*sarama.Broker, error) {
+	panic("implement me")
+}
+
 func (m *MockSaramaClient) Close() error {
 	panic("implement me")
 }

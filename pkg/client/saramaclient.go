@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -209,4 +210,55 @@ func (s *SaramaClient) GetConfig(resource ConfigResource) ([]ConfigEntry, error)
 	}
 
 	return configEntries, nil
+}
+
+func (s *SaramaClient) DescribeLogDirs(brokerIDs []int32) (map[int32][]DescribeLogDirsResponseDirMetadata, error) {
+	metaData, err := s.admin.DescribeLogDirs(brokerIDs)
+	if err != nil {
+		return nil, err
+	}
+	brokerWiseLogDirsResponseMetaData := make(map[int32][]DescribeLogDirsResponseDirMetadata, len(brokerIDs))
+	for brokerID, brokerMetaDataList := range metaData {
+		list := make([]DescribeLogDirsResponseDirMetadata, 0)
+		for _, logDirsResponseMetaData := range brokerMetaDataList {
+			var err error
+			if logDirsResponseMetaData.ErrorCode != sarama.ErrNoError {
+				err = fmt.Errorf("broker Id: %d, error: %w", brokerID, errors.New(logDirsResponseMetaData.ErrorCode.Error()))
+			}
+			rMeta := DescribeLogDirsResponseDirMetadata{
+				Error:  err,
+				Path:   logDirsResponseMetaData.Path,
+				Topics: getLogDirsTopics(logDirsResponseMetaData.Topics),
+			}
+			list = append(list, rMeta)
+		}
+		brokerWiseLogDirsResponseMetaData[brokerID] = list
+	}
+	return brokerWiseLogDirsResponseMetaData, nil
+}
+
+func getLogDirsTopics(topics []sarama.DescribeLogDirsResponseTopic) []DescribeLogDirsResponseTopic {
+	list := make([]DescribeLogDirsResponseTopic, 0, len(topics))
+	for _, topic := range topics {
+		rTopic := DescribeLogDirsResponseTopic{
+			Topic:      topic.Topic,
+			Partitions: getLogDirsPartition(topic.Partitions),
+		}
+		list = append(list, rTopic)
+	}
+	return list
+}
+
+func getLogDirsPartition(partitions []sarama.DescribeLogDirsResponsePartition) []DescribeLogDirsResponsePartition {
+	list := make([]DescribeLogDirsResponsePartition, 0, len(partitions))
+	for _, partition := range partitions {
+		rPartition := DescribeLogDirsResponsePartition{
+			PartitionID: partition.PartitionID,
+			Size:        partition.Size,
+			OffsetLag:   partition.OffsetLag,
+			IsTemporary: partition.IsTemporary,
+		}
+		list = append(list, rPartition)
+	}
+	return list
 }

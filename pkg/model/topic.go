@@ -73,6 +73,24 @@ func (t *Topic) ListOnly(regex string, include bool) ([]string, error) {
 	return ListUtil{topics}.Filter(regex, include)
 }
 
+func (t *Topic) ListTopicWithSizeLessThanOrEqualTo(size int64) ([]string, error) {
+	brokerMap := t.apiClient.ListBrokers()
+	brokerIDs := make([]int32, 0, len(brokerMap))
+	for brokerID := range brokerMap {
+		brokerIDs = append(brokerIDs, int32(brokerID))
+	}
+	metaData, err := t.apiClient.DescribeLogDirs(brokerIDs)
+	if err != nil {
+		return nil, err
+	}
+	topicWiseMap, err := getTopicWiseMetaDataMap(metaData)
+	if err != nil {
+		return nil, err
+	}
+	emptyTopics := filterByTopicSize(topicWiseMap, size)
+	return emptyTopics, nil
+}
+
 func (t *Topic) Describe(topics []string) ([]*client.TopicMetadata, error) {
 	return t.apiClient.DescribeTopicMetadata(topics)
 }
@@ -96,4 +114,40 @@ func (t *Topic) UpdateConfig(topics []string, configMap map[string]*string, vali
 
 func (t *Topic) Delete(topics []string) error {
 	return t.apiClient.DeleteTopic(topics)
+}
+
+func filterByTopicSize(topicWiseMap map[string][]client.DescribeLogDirsResponsePartition, size int64) []string {
+	sizeFilteredTopics := make([]string, 0)
+	for topic, partitionMetaDataSlice := range topicWiseMap {
+		total := int64(0)
+		for _, partitionMetaData := range partitionMetaDataSlice {
+			total += partitionMetaData.Size
+		}
+		if size >= total {
+			sizeFilteredTopics = append(sizeFilteredTopics, topic)
+		}
+	}
+	return sizeFilteredTopics
+}
+
+func getTopicWiseMetaDataMap(brokerMetaDataMap map[int32][]client.
+	DescribeLogDirsResponseDirMetadata) (map[string][]client.DescribeLogDirsResponsePartition, error) {
+
+	topicWiseMap := make(map[string][]client.DescribeLogDirsResponsePartition)
+	for _, brokerWiseMetaData := range brokerMetaDataMap {
+		for _, logDirsMeta := range brokerWiseMetaData {
+			if logDirsMeta.Error == nil {
+				for _, topicWiseMetaData := range logDirsMeta.Topics {
+					topic := topicWiseMetaData.Topic
+					if topicWiseMap[topic] == nil {
+						topicWiseMap[topic] = make([]client.DescribeLogDirsResponsePartition, 0)
+					}
+					topicWiseMap[topic] = append(topicWiseMap[topic], topicWiseMetaData.Partitions...)
+				}
+			} else {
+				return nil, logDirsMeta.Error
+			}
+		}
+	}
+	return topicWiseMap, nil
 }

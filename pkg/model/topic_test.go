@@ -2,13 +2,24 @@ package model
 
 import (
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/gojek/kat/pkg/client"
 
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
+
+func withMockSSHClient(m *client.MockSSHClient) TopicOpts {
+	return func(t *Topic) error {
+		t.sshClient = m
+		return nil
+	}
+}
 
 func TestTopic_ListSuccess(t *testing.T) {
 	kafkaClient := &client.MockKafkaAPIClient{}
@@ -142,6 +153,7 @@ func TestTopic_ShowConfigSuccess(t *testing.T) {
 func TestTopic_ShowConfigFailure(t *testing.T) {
 	kafkaClient := &client.MockKafkaAPIClient{}
 	topicCli, err := NewTopic(kafkaClient)
+	require.NoError(t, err)
 	expectedErr := errors.New("error")
 
 	topic := "topic1"
@@ -240,4 +252,81 @@ func TestTopic_CreatePartitionsFailure(t *testing.T) {
 
 	assert.Error(t, err)
 	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_ListSizeLessThanEqualToSuccess(t *testing.T) {
+	kafkaClient := &client.MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	size := int64(0)
+	brokerMetaDataConfig := map[int32][]string{
+		-1: {"topic-1#1:0,2:0,3:0", "topic-2#4:0,5:0,6:0"},
+		2:  {"topic-1#4:0,5:0,6:0", "topic-2#1:0,2:0,3:1"},
+	}
+	brokers := map[int]string{-1: "broker-1", 2: "broker-2"}
+	metaData := getBrokerMetaData(brokerMetaDataConfig, nil)
+	kafkaClient.On("ListBrokers").Return(brokers, nil).Twice()
+	kafkaClient.On("DescribeLogDirs", mock.MatchedBy(validateToken)).Return(metaData, nil).Twice()
+
+	responseTopics, err := topicCli.ListTopicWithSizeLessThanOrEqualTo(size)
+
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"topic-1"}, responseTopics)
+
+	responseTopics2, err2 := topicCli.ListTopicWithSizeLessThanOrEqualTo(100)
+
+	require.NoError(t, err2)
+	assert.ElementsMatch(t, []string{"topic-1", "topic-2"}, responseTopics2)
+	kafkaClient.AssertExpectations(t)
+}
+
+func TestTopic_ListSizeLessThanEqualToFailure(t *testing.T) {
+	kafkaClient := &client.MockKafkaAPIClient{}
+	topicCli, _ := NewTopic(kafkaClient)
+	brokerMetaDataConfig := map[int32][]string{
+		-1: {"topic-1#1:0,2:0,3:0", "topic-2#4:0,5:0,6:0"},
+		2:  {"topic-1#4:0,5:0,6:0", "topic-2#1:0,2:0,3:1"},
+	}
+	sampleErr := errors.New("sample error")
+	brokers := map[int]string{-1: "broker-1", 2: "broker-2"}
+	metaData := getBrokerMetaData(brokerMetaDataConfig, sampleErr)
+	kafkaClient.On("ListBrokers").Return(brokers, nil).Once()
+	kafkaClient.On("DescribeLogDirs", mock.MatchedBy(validateToken)).Return(metaData, nil).Once()
+
+	responseTopics, err := topicCli.ListTopicWithSizeLessThanOrEqualTo(0)
+
+	require.Error(t, err)
+	assert.EqualError(t, err, sampleErr.Error())
+	assert.Nil(t, responseTopics)
+	kafkaClient.AssertExpectations(t)
+}
+
+func getTopicPartitions(topic string, partitions []string) client.DescribeLogDirsResponseTopic {
+	list := make([]client.DescribeLogDirsResponsePartition, 0, len(partitions))
+	for _, val := range partitions {
+		splitStrings := strings.Split(val, ":")
+		id, _ := strconv.ParseInt(splitStrings[0], 10, 32)
+		size, _ := strconv.ParseInt(splitStrings[1], 10, 64)
+		list = append(list, client.DescribeLogDirsResponsePartition{PartitionID: int32(id), Size: size})
+	}
+	return client.DescribeLogDirsResponseTopic{Topic: topic, Partitions: list}
+}
+
+func getBrokerMetaData(configMap map[int32][]string, err error) map[int32][]client.DescribeLogDirsResponseDirMetadata {
+	brokerMap := make(map[int32][]client.DescribeLogDirsResponseDirMetadata, len(configMap))
+	for brokerID, configList := range configMap {
+		topicList := make([]client.DescribeLogDirsResponseTopic, 0, len(configList))
+		for _, conf := range configList {
+			t1 := strings.Split(conf, "#")
+			p := strings.Split(t1[1], ",")
+			topic := getTopicPartitions(t1[0], p)
+			topicList = append(topicList, topic)
+		}
+		brokerList := []client.DescribeLogDirsResponseDirMetadata{{Topics: topicList, Error: err}}
+		brokerMap[brokerID] = brokerList
+	}
+	return brokerMap
+}
+
+func validateToken(token []int32) bool {
+	return (token[0] == -1 && token[1] == 2) || (token[0] == 2 && token[1] == -1)
 }

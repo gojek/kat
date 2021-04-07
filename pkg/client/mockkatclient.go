@@ -35,6 +35,11 @@ func (m *MockLister) ListOnly(regex string, include bool) ([]string, error) {
 	return args.Get(0).([]string), args.Error(1)
 }
 
+func (m *MockLister) ListTopicWithSizeLessThanOrEqualTo(size int64) ([]string, error) {
+	args := m.Called(size)
+	return args.Get(0).([]string), args.Error(1)
+}
+
 type MockDescriber struct {
 	mock.Mock
 }
