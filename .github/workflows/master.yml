@@ -1,6 +1,8 @@
-name: pull-request
+name: master
 on:
-  pull_request:
+  push:
+    branches:
+      - "master"
 jobs:
   build:
     name: build
