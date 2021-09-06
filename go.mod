@@ -1,6 +1,6 @@
 module github.com/gojek/kat
 
-go 1.12
+go 1.15
 
 require (
 	bou.ke/monkey v1.0.2
@@ -18,6 +18,8 @@ require (
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/goleak v1.1.10
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
-	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
-	golang.org/x/tools v0.1.0 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
+	golang.org/x/mod v0.5.0 // indirect
+	golang.org/x/sys v0.0.0-20210903071746-97244b99971b // indirect
+	golang.org/x/tools v0.1.5 // indirect
 )
