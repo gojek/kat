@@ -1,6 +1,6 @@
 module github.com/gojek/kat
 
-go 1.12
+go 1.15
 
 require (
 	bou.ke/monkey v1.0.2
