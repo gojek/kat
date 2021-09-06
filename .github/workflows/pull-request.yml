@@ -28,14 +28,8 @@ jobs:
           go-version: '^1.13.1'
       - name: setup-project
         run: make setup
-      - name: Generate Coverage Report
-        run: make test-coverage
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
-        with:
-          files: ./coverage-all.out
-          fail_ci_if_error: true
-          verbose: true
+      - name: test-project
+        run: make test
   golangci:
     name: golangci
     runs-on: ubuntu-latest
