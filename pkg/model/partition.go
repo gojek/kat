@@ -51,6 +51,7 @@ type kafkaPartitionReassignment struct {
 }
 
 const kafkaReassignPartitions = "kafka-reassign-partitions"
+const REASSIGN_JOB_RESUMPTION_FILE = "/tmp/reassign_job_state"
 
 func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchID int) (cmd string, args []string) {
 	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--broker-list", brokerList,

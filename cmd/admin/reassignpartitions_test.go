@@ -78,3 +78,24 @@ func TestReassignPartitions_NoMatch(t *testing.T) {
 	mockLister.AssertExpectations(t)
 	mockPartitioner.AssertExpectations(t)
 }
+
+func TestReassignPartitions_Resume(t *testing.T){
+	mockLister := &client.MockLister{}
+	mockPartitioner := &client.MockPartitioner{}
+	brokerIds := "1,2"
+	batch := 1
+	timeoutPerBatch := 1
+	pollInterval := 1
+	throttle := 100
+	topics := []string{"topic-1","topic-3", "topic-2","topic-4"}
+	toReassignTopics := []string{"topic-3", "topic-4"}
+	topicRegex := "topic-."
+	resume := "./testdata/reassign_partition_state"
+
+	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
+	mockPartitioner.On("ReassignPartitions", toReassignTopics, brokerIds, batch, timeoutPerBatch, pollInterval, throttle).Return(nil).Times(1)
+	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: topicRegex, brokerIds: brokerIds, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, resumptionFile: resume}
+	r.reassignPartitions()
+	mockLister.AssertExpectations(t)
+	mockPartitioner.AssertExpectations(t)
+}
