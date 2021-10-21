@@ -184,6 +184,8 @@ func TestPartition_ReassignPartitions_Success(t *testing.T) {
 	expectedReassignmentJSON := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}, {\"topic\":\"test-2\",\"partition\":0,\"replicas\":[3,5,6],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
 	file.On("Write", "/tmp/rollback-0.json", expectedRollbackJSON).Return(nil)
 	file.On("Write", "/tmp/reassignment-0.json", expectedReassignmentJSON).Return(nil)
+	file.On("Write", ReassignJobResumptionFile, "test-2").Return(nil)
+	file.On("Remove", ReassignJobResumptionFile).Return(nil)
 
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, nil)
 
@@ -308,6 +310,10 @@ func TestPartition_ReassignPartitions_Success_ForMultipleBatches(t *testing.T) {
 	expectedVerificationBytes2.WriteString("Status of partition reassignment: \n" +
 		"Reassignment of partition test-2-0 completed successfully\n")
 	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-1.json", "--verify"}).Return(expectedVerificationBytes2, nil)
+
+	file.On("Write", ReassignJobResumptionFile, "test-1").Return(nil)
+	file.On("Write", ReassignJobResumptionFile, "test-2").Return(nil)
+	file.On("Remove", ReassignJobResumptionFile).Return(nil)
 
 	err := partition.ReassignPartitions(topics, "broker-list", 1, 1, 1, 100000)
 	assert.NoError(t, err)
@@ -605,5 +611,10 @@ type MockFile struct {
 
 func (m *MockFile) Write(fileName, data string) error {
 	arguments := m.Called(fileName, data)
+	return arguments.Error(0)
+}
+
+func (m *MockFile) Remove(fileName string) error {
+	arguments := m.Called(fileName)
 	return arguments.Error(0)
 }

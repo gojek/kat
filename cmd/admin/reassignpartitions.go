@@ -25,7 +25,7 @@ type reassignPartitions struct {
 	timeoutPerBatchInS int
 	pollIntervalInS    int
 	throttle           int
-	resumptionFile	 string
+	resumptionFile     string
 }
 
 var ReassignPartitionsCmd = &cobra.Command{
@@ -38,7 +38,7 @@ var ReassignPartitionsCmd = &cobra.Command{
 		r := reassignPartitions{Lister: baseCmd.GetTopic(), Partitioner: baseCmd.GetPartition(), topics: cobraUtil.GetStringArg("topics"),
 			brokerIds: cobraUtil.GetStringArg("broker-ids"), batch: cobraUtil.GetIntArg("batch"),
 			timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"), pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"),
-			throttle: cobraUtil.GetIntArg("throttle"), resumptionFile: cobraUtil.GetStringArg("resume"),}
+			throttle: cobraUtil.GetIntArg("throttle"), resumptionFile: cobraUtil.GetStringArg("resume")}
 		r.reassignPartitions()
 	},
 }
@@ -53,7 +53,7 @@ func init() {
 	ReassignPartitionsCmd.PersistentFlags().IntP("status-poll-interval", "", 5, "Interval in seconds for polling for reassignment status")
 	ReassignPartitionsCmd.PersistentFlags().IntP("throttle", "", 10000000, "Throttle for reassignment in bytes/sec")
 	ReassignPartitionsCmd.PersistentFlags().StringP("resume", "", "", "Resume existing reassignment job, requires same parameters topic parameter to be supplied")
-	ReassignPartitionsCmd.PersistentFlags().Lookup("resume").NoOptDefVal = model.REASSIGN_JOB_RESUMPTION_FILE
+	ReassignPartitionsCmd.PersistentFlags().Lookup("resume").NoOptDefVal = model.ReassignJobResumptionFile
 	if err := ReassignPartitionsCmd.MarkPersistentFlagRequired("topics"); err != nil {
 		logger.Fatal(err)
 	}
@@ -76,14 +76,14 @@ func (r *reassignPartitions) reassignPartitions() {
 		return
 	}
 	sort.Strings(topics)
-	
+
 	if r.resumptionFile != "" {
 		topics, err = r.fetchTopicsToBeMoved(topics)
-		if err != nil{
+		if err != nil {
 			logger.Errorf("Error while reading previous job state. %s", err)
 		}
 	}
-	
+
 	err = r.ReassignPartitions(topics, r.brokerIds, r.batch, r.timeoutPerBatchInS, r.pollIntervalInS, r.throttle)
 	if err != nil {
 		logger.Errorf("Error while reassigning partitions: %s", err)
@@ -94,24 +94,24 @@ func (r *reassignPartitions) reassignPartitions() {
 
 func (r reassignPartitions) fetchTopicsToBeMoved(topics []string) ([]string, error) {
 	f, err := os.OpenFile(r.resumptionFile, os.O_RDONLY, 0666)
-	if errors.Is(err, os.ErrNotExist){
+	if errors.Is(err, os.ErrNotExist) {
 		log.Fatalf("There's no job file to resume reassignment from %s", err)
-	}else if err != nil {
-		log.Fatalf("Unexpected error occured while trying to load previous state, %s", err)
+	} else if err != nil {
+		log.Fatalf("Unexpected error occurred while trying to load previous state, %s", err)
 	}
 	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 	scanner.Split(bufio.ScanLines)
-    var text []string
+	var text []string
 	for scanner.Scan() {
-        text = append(text, scanner.Text())
-    }
-	
+		text = append(text, scanner.Text())
+	}
+
 	if len(text) > 1 {
 		return nil, fmt.Errorf("the resumption file contains more than 1 topic which means it's corrupted")
 	}
-	
+
 	var topicsToReassign []string
 	for index, topic := range topics {
 		if topic == text[0] {

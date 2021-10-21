@@ -2,12 +2,17 @@ package model
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gojek/kat/pkg/client"
@@ -22,6 +27,7 @@ type executor interface {
 
 type file interface {
 	Write(fileName, data string) error
+	Remove(fileName string) error
 }
 
 type Partition struct {
@@ -51,7 +57,7 @@ type kafkaPartitionReassignment struct {
 }
 
 const kafkaReassignPartitions = "kafka-reassign-partitions"
-const REASSIGN_JOB_RESUMPTION_FILE = "/tmp/reassign_job_state"
+const ReassignJobResumptionFile = "/tmp/resume_reassign_job"
 
 func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchID int) (cmd string, args []string) {
 	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--broker-list", brokerList,
@@ -75,30 +81,77 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 		batches = append(batches, topics[i:min(i+batch, len(topics))])
 	}
 
+	baseCtx, cancelContextFunc := context.WithCancel(context.Background())
+	wg := setSigTermListener(baseCtx, cancelContextFunc)
+	defer wg.Wait()
+	defer cancelContextFunc()
+
 	for id, batch := range batches {
-		err := p.createTopicsToMoveJSON(batch, id)
-		if err != nil {
+		if err := p.executeReassignment(batch, id, throttle, pollIntervalInS, timeoutPerBatchInS, brokerList); err != nil {
 			return err
 		}
 
-		err = p.generateReassignmentAndRollbackJSON(brokerList, id)
-		if err != nil {
+		if err := p.Write(ReassignJobResumptionFile, batch[len(batch)-1]); err != nil {
 			return err
 		}
 
-		_, err = p.Execute(p.execute(p.zookeeper, id, throttle))
-		if err != nil {
-			return err
+		select {
+		case <-baseCtx.Done():
+			logger.Info("Stopping due to interrupt")
+			return nil
+		case <-time.After(time.Millisecond * 50):
 		}
+	}
 
-		err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, id)
-		if err != nil {
-			return err
-		}
+	err := p.Remove(ReassignJobResumptionFile)
+	if err != nil {
+		logger.Errorf("Error while trying to cleanup job resumption file, %s", err)
 	}
 	return nil
 }
 
+func setSigTermListener(ctx context.Context, cancelFunc context.CancelFunc) *sync.WaitGroup {
+	cancelChan := make(chan os.Signal, 1)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	// catch SIGETRM or SIGINTERRUPT
+	signal.Notify(cancelChan, syscall.SIGTERM)
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-cancelChan:
+			logger.Info("Interrupt has been received, will stop reassignment after current batch")
+			cancelFunc()
+
+		}
+		wg.Done()
+	}()
+	return &wg
+}
+
+func (p *Partition) executeReassignment(batch []string, id, throttle, pollIntervalInS, timeoutPerBatchInS int, brokerList string) error {
+	err := p.createTopicsToMoveJSON(batch, id)
+	if err != nil {
+		return err
+	}
+
+	err = p.generateReassignmentAndRollbackJSON(brokerList, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.Execute(p.execute(p.zookeeper, id, throttle))
+	if err != nil {
+		return err
+	}
+
+	err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func (p *Partition) IncreaseReplication(topicsMetadata []*client.TopicMetadata, replicationFactor, numOfBrokers,
 	batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
 	var batches [][]*client.TopicMetadata
