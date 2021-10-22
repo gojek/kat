@@ -97,7 +97,7 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 
 		select {
 		case <-baseCtx.Done():
-			return fmt.Errorf("stopping due to interrupt")
+			return fmt.Errorf("stopping due to interrupt, migration of %s was completed", batch[len(batch)-1])
 		case <-time.After(time.Millisecond * 500):
 		}
 	}

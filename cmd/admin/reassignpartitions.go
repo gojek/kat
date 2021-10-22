@@ -52,7 +52,8 @@ func init() {
 	ReassignPartitionsCmd.PersistentFlags().IntP("timeout-per-batch", "", 300, "Timeout for reassignment per batch in seconds")
 	ReassignPartitionsCmd.PersistentFlags().IntP("status-poll-interval", "", 5, "Interval in seconds for polling for reassignment status")
 	ReassignPartitionsCmd.PersistentFlags().IntP("throttle", "", 10000000, "Throttle for reassignment in bytes/sec")
-	ReassignPartitionsCmd.PersistentFlags().StringP("resume", "", "", "Resume existing reassignment job, requires same parameters topic parameter to be supplied")
+	ReassignPartitionsCmd.PersistentFlags().StringP("resume", "", "", "Resume existing reassignment job"+
+		"(requires same input flags to be supplied as previous job).(Optional: file name can be supplied to read the resume state)")
 	ReassignPartitionsCmd.PersistentFlags().Lookup("resume").NoOptDefVal = model.ReassignJobResumptionFile
 	if err := ReassignPartitionsCmd.MarkPersistentFlagRequired("topics"); err != nil {
 		logger.Fatal(err)

@@ -251,6 +251,7 @@ func TestPartition_ReassignPartitions_GracefulPause(t *testing.T) {
 
 	err := partition.ReassignPartitions(topics, "broker-list", 1, 1, 1, 100000)
 	assert.Error(t, err)
+	assert.EqualError(t, err, "stopping due to interrupt, migration of test-1 was completed")
 	executor.AssertExpectations(t)
 	file.AssertExpectations(t)
 }
