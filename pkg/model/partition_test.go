@@ -245,7 +245,7 @@ func TestPartition_ReassignPartitions_GracefulPause(t *testing.T) {
 	file.On("Write", ReassignJobResumptionFile, "test-1").Return(nil).Times(1)
 
 	pid := syscall.Getpid()
-	time.AfterFunc(300 * time.Millisecond ,func() {
+	time.AfterFunc(300*time.Millisecond, func() {
 		syscall.Kill(pid, syscall.SIGINT)
 	})
 

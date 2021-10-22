@@ -14,8 +14,8 @@ type SignalHandler struct {
 	wg sync.WaitGroup
 }
 
-//notifies the context about an external signal that has been notified by cancelling the context.
-func (s SignalHandler) SetListener(ctx context.Context, cancelFunc context.CancelFunc, syscallSignal syscall.Signal) {
+// SetListener notifies the context about an external signal that has been notified by cancelling the context.
+func (s *SignalHandler) SetListener(ctx context.Context, cancelFunc context.CancelFunc, syscallSignal syscall.Signal) {
 	cancelChan := make(chan os.Signal, 1)
 	s.wg.Add(1)
 	// catch SIGETRM
@@ -32,7 +32,7 @@ func (s SignalHandler) SetListener(ctx context.Context, cancelFunc context.Cance
 	}()
 }
 
-// ensures all the set up listeners have completed execution.
-func (s SignalHandler) Close() {
+// Close ensures all the set up listeners have completed execution.
+func (s *SignalHandler) Close() {
 	s.wg.Wait()
 }

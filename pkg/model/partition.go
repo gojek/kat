@@ -79,11 +79,11 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 	}
 
 	baseCtx, cancelContextFunc := context.WithCancel(context.Background())
-	
+
 	sigTermHandler := io.SignalHandler{}
 	sigTermHandler.SetListener(baseCtx, cancelContextFunc, syscall.SIGINT)
 	defer sigTermHandler.Close()
-	
+
 	defer cancelContextFunc()
 
 	for id, batch := range batches {
