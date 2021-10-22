@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/gojek/kat/logger"
 	"github.com/gojek/kat/pkg/client"
@@ -197,6 +199,58 @@ func TestPartition_ReassignPartitions_Success(t *testing.T) {
 
 	err := partition.ReassignPartitions(topics, "broker-list", 2, 1, 1, 100000)
 	assert.NoError(t, err)
+	executor.AssertExpectations(t)
+	file.AssertExpectations(t)
+}
+
+func TestPartition_ReassignPartitions_GracefulPause(t *testing.T) {
+	executor := &io.MockExecutor{}
+	file := &MockFile{}
+	partition := &Partition{
+		zookeeper: "zoo",
+		executor:  executor,
+		file:      file,
+		kafkaPartitionReassignment: kafkaPartitionReassignment{
+			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
+			reassignmentJSONFile: "/tmp/reassignment-%d.json",
+			rollbackJSONFile:     "/tmp/rollback-%d.json",
+		},
+	}
+	topics := []string{"test-1", "test-2"}
+
+	expectedTopicsToMove1 := topicsToMove{Topics: []map[string]string{{"topic": "test-1"}}}
+	expectedTopicsJSON1, _ := json.MarshalIndent(expectedTopicsToMove1, "", "")
+	file.On("Write", "/tmp/topics-to-move-0.json", string(expectedTopicsJSON1)).Return(nil)
+
+	expectedFullReassignmentBytes1 := bytes.Buffer{}
+	expectedFullReassignmentBytes1.WriteString("Current partition replica assignment\n" +
+		"{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[6,1,2],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}\n" +
+		"                       \n" +
+		"Proposed partition reassignment configuration\n" +
+		"{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}\n")
+	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--broker-list", "broker-list", "--topics-to-move-json-file", "/tmp/topics-to-move-0.json", "--generate"}).Return(expectedFullReassignmentBytes1, nil)
+
+	expectedRollbackJSON1 := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[6,1,2],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
+	expectedReassignmentJSON1 := "{\"version\":1,\"partitions\":[{\"topic\":\"test-1\",\"partition\":0,\"replicas\":[1,2,3],\"log_dirs\":[\"any\",\"any\",\"any\"]}]}"
+	file.On("Write", "/tmp/rollback-0.json", expectedRollbackJSON1).Return(nil)
+	file.On("Write", "/tmp/reassignment-0.json", expectedReassignmentJSON1).Return(nil)
+
+	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--throttle", "100000", "--execute"}).Return(bytes.Buffer{}, nil)
+
+	expectedVerificationBytes1 := bytes.Buffer{}
+	expectedVerificationBytes1.WriteString("Status of partition reassignment: \n" +
+		"Reassignment of partition test-1-0 completed successfully\n")
+	executor.On("Execute", "kafka-reassign-partitions", []string{"--zookeeper", "zoo", "--reassignment-json-file", "/tmp/reassignment-0.json", "--verify"}).Return(expectedVerificationBytes1, nil)
+
+	file.On("Write", ReassignJobResumptionFile, "test-1").Return(nil).Times(1)
+
+	pid := syscall.Getpid()
+	time.AfterFunc(300 * time.Millisecond ,func() {
+		syscall.Kill(pid, syscall.SIGTERM)
+	})
+
+	err := partition.ReassignPartitions(topics, "broker-list", 1, 1, 1, 100000)
+	assert.Error(t, err)
 	executor.AssertExpectations(t)
 	file.AssertExpectations(t)
 }
