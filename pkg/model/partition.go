@@ -7,11 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -82,8 +79,11 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 	}
 
 	baseCtx, cancelContextFunc := context.WithCancel(context.Background())
-	wg := setSigTermListener(baseCtx, cancelContextFunc)
-	defer wg.Wait()
+	
+	sigTermHandler := io.SignalHandler{}
+	sigTermHandler.SetListener(baseCtx, cancelContextFunc, syscall.SIGTERM)
+	defer sigTermHandler.Close()
+	
 	defer cancelContextFunc()
 
 	for id, batch := range batches {
@@ -97,9 +97,8 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 
 		select {
 		case <-baseCtx.Done():
-			logger.Info("Stopping due to interrupt")
-			return nil
-		case <-time.After(time.Millisecond * 50):
+			return fmt.Errorf("stopping due to interrupt")
+		case <-time.After(time.Millisecond * 500):
 		}
 	}
 
@@ -108,25 +107,6 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 		logger.Errorf("Error while trying to cleanup job resumption file, %s", err)
 	}
 	return nil
-}
-
-func setSigTermListener(ctx context.Context, cancelFunc context.CancelFunc) *sync.WaitGroup {
-	cancelChan := make(chan os.Signal, 1)
-	var wg sync.WaitGroup
-	wg.Add(1)
-	// catch SIGETRM or SIGINTERRUPT
-	signal.Notify(cancelChan, syscall.SIGTERM)
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-cancelChan:
-			logger.Info("Interrupt has been received, will stop reassignment after current batch")
-			cancelFunc()
-
-		}
-		wg.Done()
-	}()
-	return &wg
 }
 
 func (p *Partition) executeReassignment(batch []string, id, throttle, pollIntervalInS, timeoutPerBatchInS int, brokerList string) error {
