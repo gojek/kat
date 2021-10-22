@@ -246,7 +246,7 @@ func TestPartition_ReassignPartitions_GracefulPause(t *testing.T) {
 
 	pid := syscall.Getpid()
 	time.AfterFunc(300 * time.Millisecond ,func() {
-		syscall.Kill(pid, syscall.SIGTERM)
+		syscall.Kill(pid, syscall.SIGINT)
 	})
 
 	err := partition.ReassignPartitions(topics, "broker-list", 1, 1, 1, 100000)

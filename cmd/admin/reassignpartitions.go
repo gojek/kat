@@ -30,7 +30,7 @@ type reassignPartitions struct {
 
 var ReassignPartitionsCmd = &cobra.Command{
 	Use:   "reassign-partitions",
-	Short: "Reassigns the partitions for topics",
+	Short: "Reassigns the partitions for topics. Use SIGINT(Ctrl+ C) to pause the process gracefully.",
 	Run: func(command *cobra.Command, args []string) {
 		cobraUtil := base.NewCobraUtil(command)
 		zookeeper := cobraUtil.GetStringArg("zookeeper")
