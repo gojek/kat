@@ -49,6 +49,7 @@ func NewPartition(zookeeper string) *Partition {
 
 type kafkaPartitionReassignment struct {
 	topicsToMoveJSONFile string
+	partitionsReassignmentJsonFile string
 	reassignmentJSONFile string
 	rollbackJSONFile     string
 }
@@ -71,7 +72,7 @@ func (k *kafkaPartitionReassignment) verify(zookeeper string, batchID int) (cmd 
 		fmt.Sprintf(k.reassignmentJSONFile, batchID), "--verify"}
 }
 
-func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
+func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle, partitionBatchSize int) error {
 	var batches [][]string
 
 	for i := 0; i < len(topics); i += batch {
