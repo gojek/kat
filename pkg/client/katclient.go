@@ -26,6 +26,6 @@ type Deleter interface {
 }
 
 type Partitioner interface {
-	ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error
+	ReassignPartitions(topics []string, brokerList string, topicBatchSize, timeoutPerBatchInS, pollIntervalInS, throttle, partitionBatchSize int) error
 	IncreaseReplication(topicsMetadata []*TopicMetadata, replicationFactor, numOfBrokers, batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error
 }

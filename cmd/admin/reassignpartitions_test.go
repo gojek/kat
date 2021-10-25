@@ -29,7 +29,7 @@ func TestReassignPartitions_Success(t *testing.T) {
 
 	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
 	mockPartitioner.On("ReassignPartitions", topics, brokerIds, batch, timeoutPerBatch, pollInterval, throttle).Return(nil).Times(1)
-	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: topicRegex, brokerIds: brokerIds, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
+	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: topicRegex, brokerIds: brokerIds, topicBatchSize: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
 	r.reassignPartitions()
 	mockLister.AssertExpectations(t)
 	mockPartitioner.AssertExpectations(t)
@@ -52,7 +52,7 @@ func TestReassignPartitions_ListFailure(t *testing.T) {
 	}
 	patch := monkey.Patch(os.Exit, fakeExit)
 	defer patch.Unpatch()
-	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: "topic-1", brokerIds: brokerIds, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
+	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: "topic-1", brokerIds: brokerIds, topicBatchSize: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
 	assert.PanicsWithValue(t, "os.Exit called", r.reassignPartitions, "os.Exit was not called")
 
 	mockPartitioner.AssertNotCalled(t, "ReassignPartitions", topics, brokerIds, batch, timeoutPerBatch, pollInterval, throttle)
@@ -72,7 +72,7 @@ func TestReassignPartitions_NoMatch(t *testing.T) {
 	topicRegex := "topic-1"
 
 	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
-	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: "topic-1", brokerIds: brokerIds, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
+	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: "topic-1", brokerIds: brokerIds, topicBatchSize: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle}
 	r.reassignPartitions()
 	mockPartitioner.AssertNotCalled(t, "ReassignPartitions", topics, brokerIds, batch, timeoutPerBatch, pollInterval, throttle)
 	mockLister.AssertExpectations(t)
@@ -94,7 +94,7 @@ func TestReassignPartitions_Resume(t *testing.T) {
 
 	mockLister.On("ListOnly", topicRegex, true).Return(topics, nil).Times(1)
 	mockPartitioner.On("ReassignPartitions", toReassignTopics, brokerIds, batch, timeoutPerBatch, pollInterval, throttle).Return(nil).Times(1)
-	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: topicRegex, brokerIds: brokerIds, batch: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, resumptionFile: resume}
+	r := reassignPartitions{Lister: mockLister, Partitioner: mockPartitioner, topics: topicRegex, brokerIds: brokerIds, topicBatchSize: batch, timeoutPerBatchInS: timeoutPerBatch, pollIntervalInS: pollInterval, throttle: throttle, resumptionFile: resume}
 	r.reassignPartitions()
 	mockLister.AssertExpectations(t)
 	mockPartitioner.AssertExpectations(t)
