@@ -44,7 +44,7 @@ func NewPartition(zookeeper string) *Partition {
 			topicsToMoveJSONFile:           "/tmp/topics-to-move-%d.json",
 			reassignmentJSONFile:           "/tmp/reassignment-%d.json",
 			rollbackJSONFile:               "/tmp/rollback-%d.json",
-			partitionsReassignmentJSONFile: "/tmp/%d/partitions-resassignment-%d.json",
+			partitionsReassignmentJSONFile: "/tmp/reassign-%d/partitions-resassignment-%d.json",
 		},
 	}
 }
