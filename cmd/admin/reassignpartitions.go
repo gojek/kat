@@ -21,7 +21,7 @@ type reassignPartitions struct {
 	client.Partitioner
 	topics             string
 	brokerIds          string
-	topicBatchSize              int
+	topicBatchSize     int
 	partitionBatchSize int
 	timeoutPerBatchInS int
 	pollIntervalInS    int
@@ -37,9 +37,9 @@ var ReassignPartitionsCmd = &cobra.Command{
 		zookeeper := cobraUtil.GetStringArg("zookeeper")
 		baseCmd := base.Init(cobraUtil, base.WithPartition(zookeeper))
 		r := reassignPartitions{Lister: baseCmd.GetTopic(), Partitioner: baseCmd.GetPartition(), topics: cobraUtil.GetStringArg("topics"),
-			brokerIds: cobraUtil.GetStringArg("broker-ids"), topicBatchSize: cobraUtil.GetIntArg("topic-batch-size"), 
-			partitionBatchSize: cobraUtil.GetIntArg("partition-batch-size"), timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"), 
-			pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"), throttle: cobraUtil.GetIntArg("throttle"), 
+			brokerIds: cobraUtil.GetStringArg("broker-ids"), topicBatchSize: cobraUtil.GetIntArg("topic-batch-size"),
+			partitionBatchSize: cobraUtil.GetIntArg("partition-batch-size"), timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"),
+			pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"), throttle: cobraUtil.GetIntArg("throttle"),
 			resumptionFile: cobraUtil.GetStringArg("resume")}
 		r.reassignPartitions()
 	},

@@ -82,7 +82,8 @@ func (m *MockPartitioner) IncreaseReplication(topicsMetadata []*TopicMetadata, r
 	return args.Error(0)
 }
 
-func (m *MockPartitioner) ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle, partitionBatchSize int) error {
+func (m *MockPartitioner) ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS,
+	throttle, partitionBatchSize int) error {
 	args := m.Called(topics, brokerList, batch, timeoutPerBatchInS, pollIntervalInS, throttle)
 	return args.Error(0)
 }

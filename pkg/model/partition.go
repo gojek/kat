@@ -25,6 +25,7 @@ type executor interface {
 type file interface {
 	Write(fileName, data string) error
 	Remove(fileName string) error
+	Read(fileName string) ([]byte, error)
 }
 
 type Partition struct {
@@ -40,18 +41,19 @@ func NewPartition(zookeeper string) *Partition {
 		executor:  &io.Executor{},
 		file:      &io.File{},
 		kafkaPartitionReassignment: kafkaPartitionReassignment{
-			topicsToMoveJSONFile: "/tmp/topics-to-move-%d.json",
-			reassignmentJSONFile: "/tmp/reassignment-%d.json",
-			rollbackJSONFile:     "/tmp/rollback-%d.json",
+			topicsToMoveJSONFile:           "/tmp/topics-to-move-%d.json",
+			reassignmentJSONFile:           "/tmp/reassignment-%d.json",
+			rollbackJSONFile:               "/tmp/rollback-%d.json",
+			partitionsReassignmentJSONFile: "/tmp/%d/partitions-resassignment-%d.json",
 		},
 	}
 }
 
 type kafkaPartitionReassignment struct {
-	topicsToMoveJSONFile string
-	partitionsReassignmentJsonFile string
-	reassignmentJSONFile string
-	rollbackJSONFile     string
+	topicsToMoveJSONFile           string
+	partitionsReassignmentJSONFile string
+	reassignmentJSONFile           string
+	rollbackJSONFile               string
 }
 
 const kafkaReassignPartitions = "kafka-reassign-partitions"
@@ -62,14 +64,14 @@ func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batc
 		"--topics-to-move-json-file", fmt.Sprintf(k.topicsToMoveJSONFile, batchID), "--generate"}
 }
 
-func (k *kafkaPartitionReassignment) execute(zookeeper string, batchID, throttle int) (cmd string, args []string) {
+func (k *kafkaPartitionReassignment) execute(zookeeper, reassignmentJSONFile string, throttle int) (cmd string, args []string) {
 	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--reassignment-json-file",
-		fmt.Sprintf(k.reassignmentJSONFile, batchID), "--throttle", strconv.FormatInt(int64(throttle), 10), "--execute"}
+		reassignmentJSONFile, "--throttle", strconv.FormatInt(int64(throttle), 10), "--execute"}
 }
 
-func (k *kafkaPartitionReassignment) verify(zookeeper string, batchID int) (cmd string, args []string) {
+func (k *kafkaPartitionReassignment) verify(zookeeper, reassignmentJSONFile string) (cmd string, args []string) {
 	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--reassignment-json-file",
-		fmt.Sprintf(k.reassignmentJSONFile, batchID), "--verify"}
+		reassignmentJSONFile, "--verify"}
 }
 
 func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch, timeoutPerBatchInS, pollIntervalInS, throttle, partitionBatchSize int) error {
@@ -88,7 +90,7 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 	defer cancelContextFunc()
 
 	for id, batch := range batches {
-		if err := p.executeReassignment(batch, id, throttle, pollIntervalInS, timeoutPerBatchInS, brokerList); err != nil {
+		if err := p.executeReassignment(batch, id, throttle, pollIntervalInS, timeoutPerBatchInS, partitionBatchSize, brokerList); err != nil {
 			return err
 		}
 
@@ -110,29 +112,73 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 	return nil
 }
 
-func (p *Partition) executeReassignment(batch []string, id, throttle, pollIntervalInS, timeoutPerBatchInS int, brokerList string) error {
-	err := p.createTopicsToMoveJSON(batch, id)
+func (p *Partition) executeReassignment(batch []string, topicBatchID, throttle, pollIntervalInS, timeoutPerBatchInS,
+	partitionBatchSize int, brokerList string) error {
+	err := p.createTopicsToMoveJSON(batch, topicBatchID)
 	if err != nil {
 		return err
 	}
 
-	err = p.generateReassignmentAndRollbackJSON(brokerList, id)
+	err = p.generateReassignmentAndRollbackJSON(brokerList, topicBatchID)
 	if err != nil {
 		return err
 	}
 
-	_, err = p.Execute(p.execute(p.zookeeper, id, throttle))
+	partitionBatchCount, err := p.createPartitionBatchedReassignmentFiles(topicBatchID, partitionBatchSize)
 	if err != nil {
 		return err
 	}
 
-	err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, id)
-	if err != nil {
-		return err
+	for partitionBatchID := 0; partitionBatchID < partitionBatchCount; partitionBatchID++ {
+		reassignmentJSONFile := fmt.Sprintf(p.kafkaPartitionReassignment.partitionsReassignmentJSONFile, topicBatchID, partitionBatchID)
+		_, err = p.Execute(p.execute(p.zookeeper, reassignmentJSONFile, throttle))
+		if err != nil {
+			return err
+		}
+
+		err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, reassignmentJSONFile)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
+
+func (p *Partition) createPartitionBatchedReassignmentFiles(topicBatchID, partitionBatchSize int) (int, error) {
+	f, err := p.Read(fmt.Sprintf(p.kafkaPartitionReassignment.reassignmentJSONFile, topicBatchID))
+	if err != nil {
+		return 0, fmt.Errorf("error while reading topic batched reassignment file %s", err)
+	}
+
+	var reassignmentObject reassignmentJSON
+	err = json.Unmarshal(f, &reassignmentObject)
+	if err != nil {
+		return 0, fmt.Errorf("error while unmarshaling topic batched reassignment json %s", err)
+	}
+	if len(reassignmentObject.Partitions) != 0 {
+		partitionBatchCount := 0
+		totalPartitions := len(reassignmentObject.Partitions)
+		logger.Infof("%d partitions to be moved in batch id: %d", totalPartitions, topicBatchID)
+		for i := 0; i < totalPartitions; i += partitionBatchSize {
+			partitionBatchedReassignment := reassignmentJSON{Version: 1,
+				Partitions: reassignmentObject.Partitions[i:min(i+partitionBatchSize, totalPartitions)]}
+			dataToWrite, err := json.Marshal(partitionBatchedReassignment)
+			if err != nil {
+				return 0, fmt.Errorf("error while marshaling partition batched reassignment data %s", err)
+			}
+			err = p.Write(fmt.Sprintf(p.partitionsReassignmentJSONFile, topicBatchID, partitionBatchCount), string(dataToWrite))
+			if err != nil {
+				return 0, fmt.Errorf("error while writing partition based reassignment batches. %s", err)
+			}
+			partitionBatchCount++
+		}
+		logger.Infof("%d partition batches were created", partitionBatchCount)
+		return partitionBatchCount, nil
+	}
+	return 0, errors.New("no partitions to reassign in partition reassignment file")
+}
+
 func (p *Partition) IncreaseReplication(topicsMetadata []*client.TopicMetadata, replicationFactor, numOfBrokers,
 	batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
 	var batches [][]*client.TopicMetadata
@@ -147,7 +193,7 @@ func (p *Partition) IncreaseReplication(topicsMetadata []*client.TopicMetadata, 
 			return err
 		}
 
-		err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, id)
+		err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, fmt.Sprintf(p.kafkaPartitionReassignment.reassignmentJSONFile, id))
 		if err != nil {
 			return err
 		}
@@ -194,8 +240,8 @@ func (p *Partition) generateReassignmentAndRollbackJSON(brokerList string, batch
 	return err
 }
 
-func (p *Partition) verifyAssignmentCompletion(batchID int) error {
-	verificationData, err := p.Execute(p.verify(p.zookeeper, batchID))
+func (p *Partition) verifyAssignmentCompletion(fileName string) error {
+	verificationData, err := p.Execute(p.verify(p.zookeeper, fileName))
 	if err != nil {
 		return err
 	}
@@ -217,14 +263,14 @@ func (p *Partition) verifyAssignmentCompletion(batchID int) error {
 	return nil
 }
 
-func (p *Partition) pollStatus(pollIntervalInS, timeoutInS, batchID int) error {
+func (p *Partition) pollStatus(pollIntervalInS, timeoutInS int, reassignFileToPoll string) error {
 	logger.Infof("Polling partition reassignment status until %v seconds\n", timeoutInS)
 	num := math.Ceil(float64(timeoutInS) / float64(pollIntervalInS))
 	var err error
 
 	for i := 0; i < int(num); i++ {
 		logger.Info("Verifying Partitioner Reassignment ...")
-		err = p.verifyAssignmentCompletion(batchID)
+		err = p.verifyAssignmentCompletion(reassignFileToPoll)
 		if err == nil {
 			break
 		}
@@ -245,7 +291,7 @@ func (p *Partition) reassignForBatch(batch []*client.TopicMetadata, batchID, rep
 		return err
 	}
 
-	reassignmentData, err := p.Execute(p.execute(p.zookeeper, batchID, throttle))
+	reassignmentData, err := p.Execute(p.execute(p.zookeeper, fmt.Sprintf(p.reassignmentJSONFile, batchID), throttle))
 	if err != nil {
 		return err
 	}
@@ -260,9 +306,10 @@ func (p *Partition) reassignForBatch(batch []*client.TopicMetadata, batchID, rep
 }
 
 type partitionDetail struct {
-	Topic     string  `json:"topic"`
-	Partition int32   `json:"partition"`
-	Replicas  []int32 `json:"replicas"`
+	Topic     string   `json:"topic"`
+	Partition int32    `json:"partition"`
+	Replicas  []int32  `json:"replicas"`
+	LogDirs   []string `json:"log_dirs"`
 }
 
 type reassignmentJSON struct {
