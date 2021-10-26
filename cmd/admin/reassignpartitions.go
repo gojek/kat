@@ -116,6 +116,7 @@ func (r reassignPartitions) fetchTopicsToBeMoved(topics []string) ([]string, err
 	var topicsToReassign []string
 	for index, topic := range topics {
 		if topic == text[0] {
+			logger.Infof("Will be continuing reassignment after topic: %s", text[0])
 			topicsToReassign = topics[index+1:]
 			return topicsToReassign, nil
 		}
