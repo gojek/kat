@@ -53,7 +53,7 @@ type kafkaPartitionReassignment struct {
 	rollbackJSONFile     string
 }
 
-const kafkaReassignPartitions = "kafka-reassign-partitions"
+const kafkaReassignPartitions = "kafka-reassign-partitions.sh"
 const ReassignJobResumptionFile = "/tmp/resume_reassign_job"
 
 func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchID int) (cmd string, args []string) {
@@ -82,6 +82,7 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 
 	sigTermHandler := io.SignalHandler{}
 	sigTermHandler.SetListener(baseCtx, cancelContextFunc, syscall.SIGINT)
+	logger.Info("Set up SIGTERM listener")
 	defer sigTermHandler.Close()
 
 	defer cancelContextFunc()
