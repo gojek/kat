@@ -157,9 +157,10 @@ func (p *Partition) createPartitionBatchedReassignmentFiles(topicBatchID, partit
 	if err != nil {
 		return 0, fmt.Errorf("error while unmarshaling topic batched reassignment json %s", err)
 	}
-	if len(reassignmentObject.Partitions) != 0 {
+
+	totalPartitions := len(reassignmentObject.Partitions)
+	if totalPartitions > 0 {
 		partitionBatchCount := 0
-		totalPartitions := len(reassignmentObject.Partitions)
 		logger.Infof("%d partitions to be moved in batch id: %d", totalPartitions, topicBatchID)
 		for i := 0; i < totalPartitions; i += partitionBatchSize {
 			partitionBatchedReassignment := reassignmentJSON{Version: 1,
@@ -174,7 +175,7 @@ func (p *Partition) createPartitionBatchedReassignmentFiles(topicBatchID, partit
 			}
 			partitionBatchCount++
 		}
-		logger.Infof("%d partition batches were created", partitionBatchCount)
+		logger.Infof("%d partition batches were created for topic batch:%d", partitionBatchCount, topicBatchID)
 		return partitionBatchCount, nil
 	}
 	return 0, errors.New("no partitions to reassign in partition reassignment file")
