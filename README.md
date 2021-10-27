@@ -167,6 +167,12 @@ This tool has automation around all these steps:
 4. Status is polled for every `poll-interval` until the `timeout-per-batch` is reached. If the timeout breaches, the command exits. Once replication factor for all partitions in the batch are increased, then next batch is processed.
 5. The reassignment.json and rollback.json files for all the batches are stored in /tmp directory. In case of any failure, running the `kafka-reassign-partitions` by passing the rollback.json of the failed batch will restore the state of those partitions.
 
+##### Graceful Shutdown and Resume
+- Partition reassignment tool also has support for graceful shutdown and resume.
+- If the a SIGINT(Ctrl+C) is supplied to the ongoing reassignment job, it will stop execution after the current batch is executed.
+- To resume the job from the previous state, just add `--resume` flag to the command with all the input flags provided to the previously stopped job.
+- The resume flag assumes that the cluster state has remained the same between the previously stopped job and the resumption job. If new topics have been added during that interval, it's possible the new topics skip reassignment.
+
 
 ## Future Scope
 - Add support for more admin operations
