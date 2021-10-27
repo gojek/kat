@@ -2,12 +2,14 @@ package model
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gojek/kat/pkg/client"
@@ -22,6 +24,7 @@ type executor interface {
 
 type file interface {
 	Write(fileName, data string) error
+	Remove(fileName string) error
 }
 
 type Partition struct {
@@ -50,7 +53,8 @@ type kafkaPartitionReassignment struct {
 	rollbackJSONFile     string
 }
 
-const kafkaReassignPartitions = "kafka-reassign-partitions"
+const kafkaReassignPartitions = "kafka-reassign-partitions.sh"
+const ReassignJobResumptionFile = "/tmp/resume_reassign_job"
 
 func (k *kafkaPartitionReassignment) generate(zookeeper, brokerList string, batchID int) (cmd string, args []string) {
 	return kafkaReassignPartitions, []string{"--zookeeper", zookeeper, "--broker-list", brokerList,
@@ -74,30 +78,61 @@ func (p *Partition) ReassignPartitions(topics []string, brokerList string, batch
 		batches = append(batches, topics[i:min(i+batch, len(topics))])
 	}
 
+	baseCtx, cancelContextFunc := context.WithCancel(context.Background())
+
+	sigTermHandler := io.SignalHandler{}
+	sigTermHandler.SetListener(baseCtx, cancelContextFunc, syscall.SIGINT)
+	logger.Info("Set up SIGTERM listener")
+	defer sigTermHandler.Close()
+
+	defer cancelContextFunc()
+
 	for id, batch := range batches {
-		err := p.createTopicsToMoveJSON(batch, id)
-		if err != nil {
+		if err := p.executeReassignment(batch, id, throttle, pollIntervalInS, timeoutPerBatchInS, brokerList); err != nil {
 			return err
 		}
 
-		err = p.generateReassignmentAndRollbackJSON(brokerList, id)
-		if err != nil {
+		if err := p.Write(ReassignJobResumptionFile, batch[len(batch)-1]); err != nil {
 			return err
 		}
 
-		_, err = p.Execute(p.execute(p.zookeeper, id, throttle))
-		if err != nil {
-			return err
+		select {
+		case <-baseCtx.Done():
+			return fmt.Errorf("stopping due to interrupt, migration of %s was completed", batch[len(batch)-1])
+		case <-time.After(time.Millisecond * 500):
 		}
+	}
 
-		err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, id)
-		if err != nil {
-			return err
-		}
+	err := p.Remove(ReassignJobResumptionFile)
+	if err != nil {
+		logger.Errorf("Error while trying to cleanup job resumption file, %s", err)
 	}
 	return nil
 }
 
+func (p *Partition) executeReassignment(batch []string, id, throttle, pollIntervalInS, timeoutPerBatchInS int, brokerList string) error {
+	err := p.createTopicsToMoveJSON(batch, id)
+	if err != nil {
+		return err
+	}
+
+	err = p.generateReassignmentAndRollbackJSON(brokerList, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.Execute(p.execute(p.zookeeper, id, throttle))
+	if err != nil {
+		return err
+	}
+
+	err = p.pollStatus(pollIntervalInS, timeoutPerBatchInS, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 func (p *Partition) IncreaseReplication(topicsMetadata []*client.TopicMetadata, replicationFactor, numOfBrokers,
 	batch, timeoutPerBatchInS, pollIntervalInS, throttle int) error {
 	var batches [][]*client.TopicMetadata
