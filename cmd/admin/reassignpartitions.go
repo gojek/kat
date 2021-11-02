@@ -21,7 +21,8 @@ type reassignPartitions struct {
 	client.Partitioner
 	topics             string
 	brokerIds          string
-	batch              int
+	topicBatchSize     int
+	partitionBatchSize int
 	timeoutPerBatchInS int
 	pollIntervalInS    int
 	throttle           int
@@ -36,9 +37,10 @@ var ReassignPartitionsCmd = &cobra.Command{
 		zookeeper := cobraUtil.GetStringArg("zookeeper")
 		baseCmd := base.Init(cobraUtil, base.WithPartition(zookeeper))
 		r := reassignPartitions{Lister: baseCmd.GetTopic(), Partitioner: baseCmd.GetPartition(), topics: cobraUtil.GetStringArg("topics"),
-			brokerIds: cobraUtil.GetStringArg("broker-ids"), batch: cobraUtil.GetIntArg("batch"),
-			timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"), pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"),
-			throttle: cobraUtil.GetIntArg("throttle"), resumptionFile: cobraUtil.GetStringArg("resume")}
+			brokerIds: cobraUtil.GetStringArg("broker-ids"), topicBatchSize: cobraUtil.GetIntArg("topic-batch-size"),
+			partitionBatchSize: cobraUtil.GetIntArg("partition-batch-size"), timeoutPerBatchInS: cobraUtil.GetIntArg("timeout-per-batch"),
+			pollIntervalInS: cobraUtil.GetIntArg("status-poll-interval"), throttle: cobraUtil.GetIntArg("throttle"),
+			resumptionFile: cobraUtil.GetStringArg("resume")}
 		r.reassignPartitions()
 	},
 }
@@ -48,7 +50,9 @@ func init() {
 		"Regex to match the topics that require partition reassignment. eg: \".*\", \"test-.*-topic\", \"topic1|topic2\"")
 	ReassignPartitionsCmd.PersistentFlags().StringP("zookeeper", "z", "", "Comma separated list of zookeeper ips")
 	ReassignPartitionsCmd.PersistentFlags().StringP("broker-ids", "i", "", "Comma separated list of broker ids. eg: \"1,2,3,4,5,6\"")
-	ReassignPartitionsCmd.PersistentFlags().IntP("batch", "", 1, "Batch size to split reassignment")
+	ReassignPartitionsCmd.PersistentFlags().IntP("topic-batch-size", "", 1, "Topic batch size to split reassignment")
+	ReassignPartitionsCmd.PersistentFlags().IntP("partition-batch-size", "", 10, "Partition batch size to split reassignment,"+
+		"topic batches are further split according to this input")
 	ReassignPartitionsCmd.PersistentFlags().IntP("timeout-per-batch", "", 300, "Timeout for reassignment per batch in seconds")
 	ReassignPartitionsCmd.PersistentFlags().IntP("status-poll-interval", "", 5, "Interval in seconds for polling for reassignment status")
 	ReassignPartitionsCmd.PersistentFlags().IntP("throttle", "", 10000000, "Throttle for reassignment in bytes/sec")
@@ -85,7 +89,7 @@ func (r *reassignPartitions) reassignPartitions() {
 		}
 	}
 
-	err = r.ReassignPartitions(topics, r.brokerIds, r.batch, r.timeoutPerBatchInS, r.pollIntervalInS, r.throttle)
+	err = r.ReassignPartitions(topics, r.brokerIds, r.topicBatchSize, r.timeoutPerBatchInS, r.pollIntervalInS, r.throttle, r.partitionBatchSize)
 	if err != nil {
 		logger.Errorf("Error while reassigning partitions: %s", err)
 		return

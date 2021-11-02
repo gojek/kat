@@ -151,20 +151,32 @@ kat mirror --source-broker-ips=<"broker1:9092,broker2:9092"> --destination-broke
 kat mirror --source-broker-ips=<"broker1:9092,broker2:9092"> --destination-broker-ips=<"broker3,broker4"> --exclude-configs=<"retention.ms,segment.bytes"> --create-topics --increase-partitions --dry-run
 ```
 
-#### Increase Replication Factor and Partition Reassignment Details
+### Increase Replication Factor and Partition Reassignment Details
 [Increasing Replication Factor](https://docs.confluent.io/current/kafka/post-deployment.html#increasing-replication-factor) and [Partition Reassignment](https://www.ibm.com/support/knowledgecenter/sv/SSCVHB_1.2.0/admin/tnpi_reassign_partitions.html) are not one step processes. On a high level, the following steps need to be executed:
 
 1. Generating the reassignment.json file
 2. Executing `kafka-reassign-partitions` command
 3. Verifying the status of reassignment
 
-This tool has automation around all these steps:
+#### Increase Replication Factor
+
 1. Topics are split into batches of the number passed in `batch` arg.
 2. Reassignment json file is created for each batch. 
-    * For increasing replication factor, this file is created using custom round-robin mechanism, that assigns leaders and ISRs per partition.
-    * For partition reassignment, this is created using `--generate` flag provided by kafka cli tool.
+    * This file is created using custom round-robin mechanism, that assigns leaders and ISRs per partition.
 3. `kafka-reassign-partitions` command is executed for each batch. 
 4. Status is polled for every `poll-interval` until the `timeout-per-batch` is reached. If the timeout breaches, the command exits. Once replication factor for all partitions in the batch are increased, then next batch is processed.
+5. The reassignment.json and rollback.json files for all the batches are stored in /tmp directory. In case of any failure, running the `kafka-reassign-partitions` by passing the rollback.json of the failed batch will restore the state of those partitions.
+
+#### Partition Reassignment
+
+1. Topics are split into multi level batches of the number passed in `topic-batch-size` and `partition-batch-size`(Applicapble only for partition reassignment command) arg.
+    * The reassignment is first into a topic level batch according to the `topic-batch-size`.
+    * Each batch is then divided into sub-batches according to `partition-batch-size`. 
+    * This ensures that any point of time maximum `partition-batch-size` partitions are being moved in the cluster.
+2. Reassignment json file is created for each batch. 
+    * This is created using `--generate` flag provided by kafka cli tool.
+3. `kafka-reassign-partitions` command is executed for each batch. 
+4. Status is polled for every `poll-interval` until the `timeout-per-batch` is reached. If the timeout breaches, the command exits. Once all partitions in the batch are migrated, then next batch is processed.
 5. The reassignment.json and rollback.json files for all the batches are stored in /tmp directory. In case of any failure, running the `kafka-reassign-partitions` by passing the rollback.json of the failed batch will restore the state of those partitions.
 
 ##### Graceful Shutdown and Resume
