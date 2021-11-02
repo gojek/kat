@@ -50,8 +50,9 @@ func init() {
 		"Regex to match the topics that require partition reassignment. eg: \".*\", \"test-.*-topic\", \"topic1|topic2\"")
 	ReassignPartitionsCmd.PersistentFlags().StringP("zookeeper", "z", "", "Comma separated list of zookeeper ips")
 	ReassignPartitionsCmd.PersistentFlags().StringP("broker-ids", "i", "", "Comma separated list of broker ids. eg: \"1,2,3,4,5,6\"")
-	ReassignPartitionsCmd.PersistentFlags().IntP("topic-batch-size", "", 1, "Batch size to split reassignment")
-	ReassignPartitionsCmd.PersistentFlags().IntP("partition-batch-size", "", 10, "Batch size to split reassignment")
+	ReassignPartitionsCmd.PersistentFlags().IntP("topic-batch-size", "", 1, "Topic batch size to split reassignment")
+	ReassignPartitionsCmd.PersistentFlags().IntP("partition-batch-size", "", 10, "Partition batch size to split reassignment,"+
+		"topic batches are further split according to this input")
 	ReassignPartitionsCmd.PersistentFlags().IntP("timeout-per-batch", "", 300, "Timeout for reassignment per batch in seconds")
 	ReassignPartitionsCmd.PersistentFlags().IntP("status-poll-interval", "", 5, "Interval in seconds for polling for reassignment status")
 	ReassignPartitionsCmd.PersistentFlags().IntP("throttle", "", 10000000, "Throttle for reassignment in bytes/sec")
